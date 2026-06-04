@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
     <UseSharedCompilation>false</UseSharedCompilation>
+    <Version>0.2.0</Version>
   </PropertyGroup>
 </Project>

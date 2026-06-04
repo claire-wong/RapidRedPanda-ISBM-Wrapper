@@ -50,7 +50,8 @@ WrapperResponse response = options.Command == "remove-publication" && options.Ha
             options.Get("--topic") ?? "",
             options.Get("--user") ?? "",
             options.Get("--password") ?? "",
-            options.Raw),
+            options.Raw,
+            BuildSubscriptionFilter(options)),
         "read-publication" => consumerWrapper.ReadPublication(
             options.Get("--host") ?? "",
             options.Get("--session-id") ?? "",
@@ -97,7 +98,10 @@ static void RunRoleSelectionMenu(IsbmConsoleSettings settings)
         System.Console.WriteLine("RapidRedPanda ISBM Test Console");
         System.Console.WriteLine("1. Consumer Publication Console");
         System.Console.WriteLine("2. Provider Publication Console");
-        System.Console.WriteLine("3. End-to-End Publication Demo");
+        System.Console.WriteLine("3. Consumer Request Console");
+        System.Console.WriteLine("4. Provider Request Console");
+        System.Console.WriteLine("5. End-to-End Publication Demo");
+        System.Console.WriteLine("6. End-to-End Request Demo");
         System.Console.WriteLine("0. Exit");
         System.Console.Write("Select a role/workflow: ");
 
@@ -116,7 +120,16 @@ static void RunRoleSelectionMenu(IsbmConsoleSettings settings)
                 new ProviderPublicationWorkflow(settings).RunMenu();
                 break;
             case "3":
+                new ConsumerRequestWorkflow(settings).RunMenu();
+                break;
+            case "4":
+                new ProviderRequestWorkflow(settings).RunMenu();
+                break;
+            case "5":
                 new EndToEndPublicationWorkflow(settings).Run();
+                break;
+            case "6":
+                new EndToEndRequestWorkflow(settings).Run();
                 break;
             case "0":
                 return;
@@ -142,7 +155,45 @@ static WrapperResponse PostPublication(ProviderPublicationWrapper wrapper, CliOp
         messageResult.MessageContent ?? "",
         options.Get("--user") ?? "",
         options.Get("--password") ?? "",
-        options.Raw);
+        options.Raw,
+        options.Get("--expiry"));
+}
+
+static IReadOnlyCollection<WrapperFilterExpression>? BuildSubscriptionFilter(CliOptions options)
+{
+    var filterExpression = options.Get("--filter-expression");
+    var filterLanguage = options.Get("--filter-language");
+    var filterLanguageVersion = options.Get("--filter-language-version");
+    var filterMediaType = options.Get("--filter-media-type");
+
+    if (string.IsNullOrWhiteSpace(filterExpression)
+        && string.IsNullOrWhiteSpace(filterLanguage)
+        && string.IsNullOrWhiteSpace(filterLanguageVersion)
+        && string.IsNullOrWhiteSpace(filterMediaType))
+    {
+        return null;
+    }
+
+    return
+    [
+        new WrapperFilterExpression
+        {
+            ApplicableMediaTypes = SplitList(filterMediaType ?? "application/json"),
+            Expression = filterExpression,
+            Language = string.IsNullOrWhiteSpace(filterLanguage) ? "JSONPath" : filterLanguage,
+            LanguageVersion = string.IsNullOrWhiteSpace(filterLanguageVersion)
+                ? "com.jayway.jsonpath:json-path:2.4.0"
+                : filterLanguageVersion,
+            Namespaces = []
+        }
+    ];
+}
+
+static List<string> SplitList(string value)
+{
+    return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(item => !string.IsNullOrWhiteSpace(item))
+        .ToList();
 }
 
 static (bool Success, string? MessageContent, WrapperResponse Response) ResolveMessageContent(CliOptions options)
@@ -180,7 +231,7 @@ static void PrintUsage()
 RapidRedPanda.Wrapper.Console usage:
 
 Consumer publication commands:
-  open-subscription --host <url> --channel <channel> --topic <topic> --user <user> --password <password> [--raw]
+  open-subscription --host <url> --channel <channel> --topic <topic> --user <user> --password <password> [--filter-expression <expr>] [--filter-language <language>] [--filter-language-version <version>] [--filter-media-type <media-types>] [--raw]
   read-publication --host <url> --session-id <id> --user <user> --password <password> [--raw]
   remove-publication --host <url> --session-id <id> --user <user> --password <password> [--raw]
   close-subscription --host <url> --session-id <id> --user <user> --password <password> [--raw]
@@ -188,7 +239,7 @@ Consumer publication commands:
 
 Provider publication commands:
   open-provider-session --host <url> --channel <channel> --user <user> --password <password> [--raw]
-  post-publication --host <url> --session-id <id> --topic <topic> (--message <json> | --message-file <path>) --user <user> --password <password> [--raw]
+  post-publication --host <url> --session-id <id> --topic <topic> (--message <json> | --message-file <path>) --user <user> --password <password> [--expiry <value>] [--raw]
   close-provider-session --host <url> --session-id <id> --user <user> --password <password> [--raw]
 
 Interactive mode:

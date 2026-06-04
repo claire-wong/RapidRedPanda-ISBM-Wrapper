@@ -193,6 +193,10 @@ Request flow:
 - Multiple topics are added to the `topics` JSON array.
 - `OpenSubscriptionSessionOptions.ListenerURL` is emitted as `listenerUrl`.
 - `OpenSubscriptionSessionOptions.FilterExpressions` is emitted as `filterExpressions`.
+- Subscription filter expressions use `RapidRedPanda.ISBM.ClientAdapter.EndpointOptions.FilterExpression`.
+  The installed adapter version exposes `List<ApplicableMediaType> ApplicableMediaTypes` and `ExpressionString ExpressionString`.
+  `ApplicableMediaType` contains `MediaType`, and `ExpressionString` contains `Expression`, `Language`, and `LanguageVersion`.
+  No `MediaTypeList` or namespace collection/type was found on the `OpenSubscriptionSessionOptions` filter surface in `RapidRedPanda.ISBM.ClientAdapter` version `2.0.2.4`.
 - On `StatusCode == 201`, the SDK parses `sessionId` from the JSON body into `OpenSubscriptionSessionResponse.SessionID`.
 
 Channel ID encoding depends on `ISBMServerType`. The default enum value is `Native`. If opening a subscription returns `404` while `ISBMServerType == Native`, the SDK retries with `/` double-encoded as `%252F`.

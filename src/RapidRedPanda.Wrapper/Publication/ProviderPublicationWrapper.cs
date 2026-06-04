@@ -1,4 +1,5 @@
 using RapidRedPanda.ISBM.ClientAdapter;
+using RapidRedPanda.ISBM.ClientAdapter.EndpointOptions;
 using RapidRedPanda.Wrapper.Responses;
 
 namespace RapidRedPanda.Wrapper.Publication;
@@ -7,6 +8,7 @@ public sealed class ProviderPublicationWrapper
 {
     private const string OpenProviderSessionCommand = "open-provider-session";
     private const string PostPublicationCommand = "post-publication";
+    private const string ExpirePublicationCommand = "expire-publication";
     private const string CloseProviderSessionCommand = "close-provider-session";
 
     public WrapperResponse OpenProviderSession(
@@ -61,6 +63,19 @@ public sealed class ProviderPublicationWrapper
         string password,
         bool includeRaw = false)
     {
+        return PostPublication(host, sessionId, topic, messageContent, user, password, includeRaw, expiry: null);
+    }
+
+    public WrapperResponse PostPublication(
+        string host,
+        string sessionId,
+        string topic,
+        string messageContent,
+        string user,
+        string password,
+        bool includeRaw,
+        string? expiry)
+    {
         var missing = ValidateRequired(
             ("host", host),
             ("session-id", sessionId),
@@ -77,7 +92,14 @@ public sealed class ProviderPublicationWrapper
         try
         {
             var service = CreateService(user, password);
-            var response = service.PostPublication(host, sessionId, topic, messageContent);
+            var response = string.IsNullOrWhiteSpace(expiry)
+                ? service.PostPublication(host, sessionId, topic, messageContent)
+                : service.PostPublication(
+                    host,
+                    sessionId,
+                    topic,
+                    messageContent,
+                    new PostPublicationOptions { Expiry = expiry });
 
             if (response.StatusCode != 201)
             {
@@ -139,6 +161,52 @@ public sealed class ProviderPublicationWrapper
         catch (Exception exception)
         {
             return WrapperResponse.ExceptionFailure(CloseProviderSessionCommand, exception);
+        }
+    }
+
+    public WrapperResponse ExpirePublication(
+        string host,
+        string sessionId,
+        string messageId,
+        string user,
+        string password,
+        bool includeRaw = false)
+    {
+        var missing = ValidateRequired(
+            ("host", host),
+            ("session-id", sessionId),
+            ("message-id", messageId),
+            ("user", user),
+            ("password", password));
+
+        if (missing is not null)
+        {
+            return WrapperResponse.ValidationFailure(ExpirePublicationCommand, $"Missing required parameter: --{missing}");
+        }
+
+        try
+        {
+            var service = CreateService(user, password);
+            var response = service.ExpirePublication(host, sessionId, messageId);
+
+            if (response.StatusCode != 204)
+            {
+                return WrapperResponse.FaultResponse(ExpirePublicationCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+            }
+
+            return WrapperResponse.SuccessResponse(
+                ExpirePublicationCommand,
+                new
+                {
+                    statusCode = response.StatusCode,
+                    expired = true,
+                    messageId
+                },
+                includeRaw ? response.ISBMHTTPResponse : null);
+        }
+        catch (Exception exception)
+        {
+            return WrapperResponse.ExceptionFailure(ExpirePublicationCommand, exception);
         }
     }
 

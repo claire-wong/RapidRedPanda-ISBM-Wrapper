@@ -186,7 +186,13 @@ internal sealed class ConsumerPublicationWorkflow
             return;
         }
 
-        var response = _wrapper.OpenSubscription(prompt.Host, prompt.Channel, prompt.Topic, prompt.User, prompt.Password, prompt.Raw);
+        var filterExpressions = PromptFilterExpressions();
+        if (filterExpressions.Cancelled)
+        {
+            return;
+        }
+
+        var response = _wrapper.OpenSubscription(prompt.Host, prompt.Channel, prompt.Topic, prompt.User, prompt.Password, prompt.Raw, filterExpressions.Filters);
         WorkflowConsole.WriteJson(response);
         if (response.Success)
         {
@@ -317,13 +323,13 @@ internal sealed class ConsumerPublicationWorkflow
         var topic = "";
         if (includeChannelAndTopic)
         {
-            channel = WorkflowConsole.PromptChannel(_settings) ?? "";
+            channel = WorkflowConsole.PromptPublicationChannel(_settings) ?? "";
             if (string.IsNullOrWhiteSpace(channel))
             {
                 return null;
             }
 
-            topic = WorkflowConsole.PromptTopic(_settings) ?? "";
+            topic = WorkflowConsole.PromptPublicationTopic(_settings) ?? "";
             if (string.IsNullOrWhiteSpace(topic))
             {
                 return null;
@@ -345,6 +351,59 @@ internal sealed class ConsumerPublicationWorkflow
         return new ConsumerPrompt(host, channel, topic, user, password, WorkflowConsole.PromptRaw(_settings));
     }
 
+    private static FilterPromptResult PromptFilterExpressions()
+    {
+        if (!WorkflowConsole.AskYesNo("Use filter expressions? [y/N]", defaultYes: false))
+        {
+            return new FilterPromptResult(null, Cancelled: false);
+        }
+
+        var filters = new List<WrapperFilterExpression>();
+        var filterNumber = 1;
+
+        while (true)
+        {
+            System.Console.WriteLine($"Filter Expression #{filterNumber}");
+
+            var mediaTypes = WorkflowConsole.Prompt("Applicable media types, comma-separated", "application/json")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(mediaType => !string.IsNullOrWhiteSpace(mediaType))
+                .ToList();
+
+            if (mediaTypes.Count == 0)
+            {
+                mediaTypes.Add("application/json");
+            }
+
+            var language = WorkflowConsole.Prompt("Filter language", "JSONPath");
+            var languageVersion = WorkflowConsole.Prompt("Filter language version", "com.jayway.jsonpath:json-path:2.4.0");
+            var expression = WorkflowConsole.PromptRequired("Filter expression");
+            if (expression is null)
+            {
+                System.Console.WriteLine(filters.Count == 0
+                    ? "Filter setup cancelled. No subscription session was opened."
+                    : "Filter setup cancelled. No subscription session was opened.");
+                return new FilterPromptResult(null, Cancelled: true);
+            }
+
+            filters.Add(new WrapperFilterExpression
+            {
+                ApplicableMediaTypes = mediaTypes,
+                Expression = expression,
+                Language = language,
+                LanguageVersion = languageVersion,
+                Namespaces = []
+            });
+
+            if (!WorkflowConsole.AskYesNo("Add another filter expression? [y/N]", defaultYes: false))
+            {
+                return new FilterPromptResult(filters, Cancelled: false);
+            }
+
+            filterNumber++;
+        }
+    }
+
     private void ClearSessionState()
     {
         _currentSessionId = null;
@@ -364,4 +423,6 @@ internal sealed class ConsumerPublicationWorkflow
     }
 
     private sealed record ConsumerPrompt(string Host, string Channel, string Topic, string User, string Password, bool Raw);
+
+    private sealed record FilterPromptResult(IReadOnlyCollection<WrapperFilterExpression>? Filters, bool Cancelled);
 }

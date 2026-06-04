@@ -1,17 +1,19 @@
 using RapidRedPanda.ISBM.ClientAdapter;
 using RapidRedPanda.ISBM.ClientAdapter.EndpointOptions;
+using RapidRedPanda.Wrapper.Publication;
 using RapidRedPanda.Wrapper.Responses;
 
-namespace RapidRedPanda.Wrapper.Publication;
+namespace RapidRedPanda.Wrapper.Request;
 
-public sealed class ConsumerPublicationWrapper
+public sealed class ProviderRequestWrapper
 {
-    private const string OpenSubscriptionCommand = "open-subscription";
-    private const string ReadPublicationCommand = "read-publication";
-    private const string RemovePublicationCommand = "remove-publication";
-    private const string CloseSubscriptionCommand = "close-subscription";
+    private const string OpenProviderRequestSessionCommand = "open-provider-request-session";
+    private const string ReadRequestCommand = "read-request";
+    private const string PostResponseCommand = "post-response";
+    private const string RemoveRequestCommand = "remove-request";
+    private const string CloseProviderRequestSessionCommand = "close-provider-request-session";
 
-    public WrapperResponse OpenSubscription(
+    public WrapperResponse OpenProviderRequestSession(
         string host,
         string channel,
         string topic,
@@ -19,10 +21,10 @@ public sealed class ConsumerPublicationWrapper
         string password,
         bool includeRaw = false)
     {
-        return OpenSubscription(host, channel, topic, user, password, includeRaw, filterExpressions: null);
+        return OpenProviderRequestSession(host, channel, topic, user, password, includeRaw, filterExpressions: null);
     }
 
-    public WrapperResponse OpenSubscription(
+    public WrapperResponse OpenProviderRequestSession(
         string host,
         string channel,
         string topic,
@@ -40,7 +42,7 @@ public sealed class ConsumerPublicationWrapper
 
         if (missing is not null)
         {
-            return WrapperResponse.ValidationFailure(OpenSubscriptionCommand, $"Missing required parameter: --{missing}");
+            return WrapperResponse.ValidationFailure(OpenProviderRequestSessionCommand, $"Missing required parameter: --{missing}");
         }
 
         var activeFilterExpressions = filterExpressions?
@@ -50,23 +52,23 @@ public sealed class ConsumerPublicationWrapper
         var filterValidationMessage = ValidateFilterExpressions(activeFilterExpressions);
         if (filterValidationMessage is not null)
         {
-            return WrapperResponse.ValidationFailure(OpenSubscriptionCommand, filterValidationMessage);
+            return WrapperResponse.ValidationFailure(OpenProviderRequestSessionCommand, filterValidationMessage);
         }
 
         try
         {
             var service = CreateService(user, password);
             var response = activeFilterExpressions is null || activeFilterExpressions.Count == 0
-                ? service.OpenSubscriptionSession(host, channel, topic)
-                : service.OpenSubscriptionSession(host, channel, topic, CreateOpenSubscriptionOptions(activeFilterExpressions));
+                ? service.OpenProviderRequestSession(host, channel, topic)
+                : service.OpenProviderRequestSession(host, channel, topic, CreateOpenProviderRequestSessionOptions(activeFilterExpressions));
 
             if (response.StatusCode != 201)
             {
-                return WrapperResponse.FaultResponse(OpenSubscriptionCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+                return WrapperResponse.FaultResponse(OpenProviderRequestSessionCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
             }
 
             return WrapperResponse.SuccessResponse(
-                OpenSubscriptionCommand,
+                OpenProviderRequestSessionCommand,
                 new
                 {
                     statusCode = response.StatusCode,
@@ -76,13 +78,14 @@ public sealed class ConsumerPublicationWrapper
         }
         catch (Exception exception)
         {
-            return WrapperResponse.ExceptionFailure(OpenSubscriptionCommand, exception);
+            return WrapperResponse.ExceptionFailure(OpenProviderRequestSessionCommand, exception);
         }
     }
 
-    private static OpenSubscriptionSessionOptions CreateOpenSubscriptionOptions(IReadOnlyCollection<WrapperFilterExpression> filterExpressions)
+    private static OpenProviderRequestSessionOptions CreateOpenProviderRequestSessionOptions(
+        IReadOnlyCollection<WrapperFilterExpression> filterExpressions)
     {
-        return new OpenSubscriptionSessionOptions
+        return new OpenProviderRequestSessionOptions
         {
             FilterExpressions = filterExpressions.Select(filterExpression => new FilterExpression
             {
@@ -143,14 +146,14 @@ public sealed class ConsumerPublicationWrapper
 
             if (filterExpression.Namespaces.Count > 0)
             {
-                return "Filter namespaces are not supported by RapidRedPanda.ISBM.ClientAdapter 2.0.2.4 OpenSubscriptionSessionOptions.";
+                return "Filter namespaces are not supported by RapidRedPanda.ISBM.ClientAdapter 2.0.2.4 OpenProviderRequestSessionOptions.";
             }
         }
 
         return null;
     }
 
-    public WrapperResponse ReadPublication(
+    public WrapperResponse ReadRequest(
         string host,
         string sessionId,
         string user,
@@ -165,37 +168,84 @@ public sealed class ConsumerPublicationWrapper
 
         if (missing is not null)
         {
-            return WrapperResponse.ValidationFailure(ReadPublicationCommand, $"Missing required parameter: --{missing}");
+            return WrapperResponse.ValidationFailure(ReadRequestCommand, $"Missing required parameter: --{missing}");
         }
 
         try
         {
             var service = CreateService(user, password);
-            var response = service.ReadPublication(host, sessionId);
+            var response = service.ReadRequest(host, sessionId);
 
             if (response.StatusCode != 200)
             {
-                return WrapperResponse.FaultResponse(ReadPublicationCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+                return WrapperResponse.FaultResponse(ReadRequestCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
             }
 
             return WrapperResponse.SuccessResponse(
-                ReadPublicationCommand,
+                ReadRequestCommand,
                 new
                 {
                     statusCode = response.StatusCode,
-                    messageId = response.MessageID,
-                    messageContent = response.MessageContent,
-                    topics = response.Topics
+                    requestMessageId = response.MessageID,
+                    messageContent = response.MessageContent
                 },
                 includeRaw ? response.ISBMHTTPResponse : null);
         }
         catch (Exception exception)
         {
-            return WrapperResponse.ExceptionFailure(ReadPublicationCommand, exception);
+            return WrapperResponse.ExceptionFailure(ReadRequestCommand, exception);
         }
     }
 
-    public WrapperResponse RemovePublication(
+    public WrapperResponse PostResponse(
+        string host,
+        string sessionId,
+        string requestMessageId,
+        string responseContent,
+        string user,
+        string password,
+        bool includeRaw = false)
+    {
+        var missing = ValidateRequired(
+            ("host", host),
+            ("session-id", sessionId),
+            ("request-message-id", requestMessageId),
+            ("response", responseContent),
+            ("user", user),
+            ("password", password));
+
+        if (missing is not null)
+        {
+            return WrapperResponse.ValidationFailure(PostResponseCommand, $"Missing required parameter: --{missing}");
+        }
+
+        try
+        {
+            var service = CreateService(user, password);
+            var response = service.PostResponse(host, sessionId, requestMessageId, responseContent);
+
+            if (response.StatusCode != 201)
+            {
+                return WrapperResponse.FaultResponse(PostResponseCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+            }
+
+            return WrapperResponse.SuccessResponse(
+                PostResponseCommand,
+                new
+                {
+                    statusCode = response.StatusCode,
+                    requestMessageId,
+                    responseMessageId = response.MessageID
+                },
+                includeRaw ? response.ISBMHTTPResponse : null);
+        }
+        catch (Exception exception)
+        {
+            return WrapperResponse.ExceptionFailure(PostResponseCommand, exception);
+        }
+    }
+
+    public WrapperResponse RemoveRequest(
         string host,
         string sessionId,
         string user,
@@ -210,21 +260,21 @@ public sealed class ConsumerPublicationWrapper
 
         if (missing is not null)
         {
-            return WrapperResponse.ValidationFailure(RemovePublicationCommand, $"Missing required parameter: --{missing}");
+            return WrapperResponse.ValidationFailure(RemoveRequestCommand, $"Missing required parameter: --{missing}");
         }
 
         try
         {
             var service = CreateService(user, password);
-            var response = service.RemovePublication(host, sessionId);
+            var response = service.RemoveRequest(host, sessionId);
 
             if (response.StatusCode != 204)
             {
-                return WrapperResponse.FaultResponse(RemovePublicationCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+                return WrapperResponse.FaultResponse(RemoveRequestCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
             }
 
             return WrapperResponse.SuccessResponse(
-                RemovePublicationCommand,
+                RemoveRequestCommand,
                 new
                 {
                     statusCode = response.StatusCode,
@@ -234,11 +284,11 @@ public sealed class ConsumerPublicationWrapper
         }
         catch (Exception exception)
         {
-            return WrapperResponse.ExceptionFailure(RemovePublicationCommand, exception);
+            return WrapperResponse.ExceptionFailure(RemoveRequestCommand, exception);
         }
     }
 
-    public WrapperResponse CloseSubscription(
+    public WrapperResponse CloseProviderRequestSession(
         string host,
         string sessionId,
         string user,
@@ -253,21 +303,21 @@ public sealed class ConsumerPublicationWrapper
 
         if (missing is not null)
         {
-            return WrapperResponse.ValidationFailure(CloseSubscriptionCommand, $"Missing required parameter: --{missing}");
+            return WrapperResponse.ValidationFailure(CloseProviderRequestSessionCommand, $"Missing required parameter: --{missing}");
         }
 
         try
         {
             var service = CreateService(user, password);
-            var response = service.CloseSubscriptionSession(host, sessionId);
+            var response = service.CloseProviderRequestSession(host, sessionId);
 
             if (response.StatusCode != 204)
             {
-                return WrapperResponse.FaultResponse(CloseSubscriptionCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+                return WrapperResponse.FaultResponse(CloseProviderRequestSessionCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
             }
 
             return WrapperResponse.SuccessResponse(
-                CloseSubscriptionCommand,
+                CloseProviderRequestSessionCommand,
                 new
                 {
                     statusCode = response.StatusCode,
@@ -277,13 +327,13 @@ public sealed class ConsumerPublicationWrapper
         }
         catch (Exception exception)
         {
-            return WrapperResponse.ExceptionFailure(CloseSubscriptionCommand, exception);
+            return WrapperResponse.ExceptionFailure(CloseProviderRequestSessionCommand, exception);
         }
     }
 
-    private static ConsumerPublicationService CreateService(string user, string password)
+    private static ProviderRequestService CreateService(string user, string password)
     {
-        var service = new ConsumerPublicationService();
+        var service = new ProviderRequestService();
         service.Credential.Username = user;
         service.Credential.Password = password;
         return service;

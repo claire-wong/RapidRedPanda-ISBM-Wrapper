@@ -67,12 +67,32 @@ internal static class WorkflowConsole
 
     public static string? PromptChannel(IsbmConsoleSettings settings)
     {
-        return PromptRequired("Channel", settings.Channel);
+        return PromptPublicationChannel(settings);
     }
 
     public static string? PromptTopic(IsbmConsoleSettings settings)
     {
-        return PromptRequired("Topic", settings.Topic);
+        return PromptPublicationTopic(settings);
+    }
+
+    public static string? PromptPublicationChannel(IsbmConsoleSettings settings)
+    {
+        return PromptRequired("Publication Channel", settings.Publication.Channel);
+    }
+
+    public static string? PromptPublicationTopic(IsbmConsoleSettings settings)
+    {
+        return PromptRequired("Publication Topic", settings.Publication.Topic);
+    }
+
+    public static string? PromptRequestChannel(IsbmConsoleSettings settings)
+    {
+        return PromptRequired("Request Channel", settings.Request.Channel);
+    }
+
+    public static string? PromptRequestTopic(IsbmConsoleSettings settings)
+    {
+        return PromptRequired("Request Topic", settings.Request.Topic);
     }
 
     public static string? PromptUser(IsbmConsoleSettings settings)

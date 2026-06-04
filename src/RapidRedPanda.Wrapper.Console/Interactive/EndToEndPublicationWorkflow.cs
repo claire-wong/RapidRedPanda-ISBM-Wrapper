@@ -23,8 +23,8 @@ internal sealed class EndToEndPublicationWorkflow
     public void Run()
     {
         var host = WorkflowConsole.PromptHost(_settings);
-        var channel = WorkflowConsole.PromptChannel(_settings);
-        var topic = WorkflowConsole.PromptTopic(_settings);
+        var channel = WorkflowConsole.PromptPublicationChannel(_settings);
+        var topic = WorkflowConsole.PromptPublicationTopic(_settings);
         var user = WorkflowConsole.PromptUser(_settings);
         var password = WorkflowConsole.PromptPassword(_settings);
         if (host is null || channel is null || topic is null || user is null || password is null)
@@ -33,6 +33,7 @@ internal sealed class EndToEndPublicationWorkflow
         }
 
         var raw = WorkflowConsole.PromptRaw(_settings);
+        var expiry = WorkflowConsole.Prompt("Expiry (optional)");
 
         System.Console.WriteLine("Enter publication message content. Submit an empty line to finish:");
         var messageContent = ReadMultilineMessage();
@@ -54,7 +55,7 @@ internal sealed class EndToEndPublicationWorkflow
             return;
         }
 
-        var post = _providerWrapper.PostPublication(host, providerSessionId, topic, messageContent, user, password, raw);
+        var post = _providerWrapper.PostPublication(host, providerSessionId, topic, messageContent, user, password, raw, expiry);
         WorkflowConsole.WriteJson(post);
         if (!post.Success && !WorkflowConsole.AskYesNo("Post failed. Continue to consumer subscription? [y/N]", defaultYes: false))
         {

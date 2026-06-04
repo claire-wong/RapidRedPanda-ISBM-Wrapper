@@ -8,6 +8,7 @@ internal sealed class ProviderPublicationWorkflow
     private readonly ProviderPublicationWrapper _wrapper = new();
     private readonly IsbmConsoleSettings _settings;
     private string? _currentSessionId;
+    private string? _lastPostedMessageId;
 
     public ProviderPublicationWorkflow()
         : this(IsbmConsoleSettings.Empty)
@@ -53,9 +54,24 @@ internal sealed class ProviderPublicationWorkflow
 
         System.Console.WriteLine("State: Provider Session Open");
         System.Console.WriteLine($"Current provider sessionId: {_currentSessionId}");
+        if (!string.IsNullOrWhiteSpace(_lastPostedMessageId))
+        {
+            System.Console.WriteLine($"Last posted publication/message id: {_lastPostedMessageId}");
+        }
+
         System.Console.WriteLine("1. Post Publication");
-        System.Console.WriteLine("2. Close Provider Session");
-        System.Console.WriteLine("3. Show Current Provider Session");
+        if (string.IsNullOrWhiteSpace(_lastPostedMessageId))
+        {
+            System.Console.WriteLine("2. Close Provider Session");
+            System.Console.WriteLine("3. Show Current Provider Session");
+        }
+        else
+        {
+            System.Console.WriteLine("2. Expire Publication");
+            System.Console.WriteLine("3. Close Provider Session");
+            System.Console.WriteLine("4. Show Current Provider Session");
+        }
+
         System.Console.WriteLine("0. Back to Role Selection");
     }
 
@@ -71,11 +87,24 @@ internal sealed class ProviderPublicationWorkflow
             };
         }
 
+        if (string.IsNullOrWhiteSpace(_lastPostedMessageId))
+        {
+            return choice switch
+            {
+                "1" => RunAndStay(PostPublication),
+                "2" => RunAndStay(CloseProviderSession),
+                "3" => RunAndStay(ShowCurrentSession),
+                "0" => true,
+                _ => InvalidAndStay()
+            };
+        }
+
         return choice switch
         {
             "1" => RunAndStay(PostPublication),
-            "2" => RunAndStay(CloseProviderSession),
-            "3" => RunAndStay(ShowCurrentSession),
+            "2" => RunAndStay(ExpirePublication),
+            "3" => RunAndStay(CloseProviderSession),
+            "4" => RunAndStay(ShowCurrentSession),
             "0" => true,
             _ => InvalidAndStay()
         };
@@ -90,7 +119,7 @@ internal sealed class ProviderPublicationWorkflow
         }
 
         var host = WorkflowConsole.PromptHost(_settings);
-        var channel = WorkflowConsole.PromptChannel(_settings);
+        var channel = WorkflowConsole.PromptPublicationChannel(_settings);
         var user = WorkflowConsole.PromptUser(_settings);
         var password = WorkflowConsole.PromptPassword(_settings);
         if (host is null || channel is null || user is null || password is null)
@@ -105,6 +134,7 @@ internal sealed class ProviderPublicationWorkflow
         if (response.Success)
         {
             _currentSessionId = WorkflowConsole.GetStringDataValue(response, "sessionId");
+            _lastPostedMessageId = null;
         }
     }
 
@@ -124,7 +154,8 @@ internal sealed class ProviderPublicationWorkflow
 
         var host = WorkflowConsole.PromptHost(_settings);
         var sessionId = WorkflowConsole.Prompt("Session ID", _currentSessionId);
-        var topic = WorkflowConsole.PromptTopic(_settings);
+        var topic = WorkflowConsole.PromptPublicationTopic(_settings);
+        var expiry = WorkflowConsole.Prompt("Expiry (optional)");
         var user = WorkflowConsole.PromptUser(_settings);
         var password = WorkflowConsole.PromptPassword(_settings);
         if (host is null || string.IsNullOrWhiteSpace(sessionId) || topic is null || user is null || password is null)
@@ -134,7 +165,49 @@ internal sealed class ProviderPublicationWorkflow
 
         var raw = WorkflowConsole.PromptRaw(_settings);
 
-        WorkflowConsole.WriteJson(_wrapper.PostPublication(host, sessionId, topic, messageContent, user, password, raw));
+        var response = _wrapper.PostPublication(host, sessionId, topic, messageContent, user, password, raw, expiry);
+        WorkflowConsole.WriteJson(response);
+        if (response.Success)
+        {
+            _lastPostedMessageId = WorkflowConsole.GetStringDataValue(response, "messageId");
+        }
+    }
+
+    private void ExpirePublication()
+    {
+        if (string.IsNullOrWhiteSpace(_currentSessionId))
+        {
+            System.Console.WriteLine("No current provider session is open.");
+            return;
+        }
+
+        var messageId = _lastPostedMessageId;
+        if (string.IsNullOrWhiteSpace(messageId))
+        {
+            messageId = WorkflowConsole.PromptRequired("Publication/message ID");
+            if (messageId is null)
+            {
+                return;
+            }
+        }
+
+        var host = WorkflowConsole.PromptHost(_settings);
+        var sessionId = WorkflowConsole.Prompt("Session ID", _currentSessionId);
+        var user = WorkflowConsole.PromptUser(_settings);
+        var password = WorkflowConsole.PromptPassword(_settings);
+        if (host is null || string.IsNullOrWhiteSpace(sessionId) || user is null || password is null)
+        {
+            return;
+        }
+
+        var raw = WorkflowConsole.PromptRaw(_settings);
+
+        var response = _wrapper.ExpirePublication(host, sessionId, messageId, user, password, raw);
+        WorkflowConsole.WriteJson(response);
+        if (response.Success && messageId == _lastPostedMessageId)
+        {
+            _lastPostedMessageId = null;
+        }
     }
 
     private void CloseProviderSession()
@@ -161,14 +234,22 @@ internal sealed class ProviderPublicationWorkflow
         if (response.Success && sessionId == _currentSessionId)
         {
             _currentSessionId = null;
+            _lastPostedMessageId = null;
         }
     }
 
     private void ShowCurrentSession()
     {
-        System.Console.WriteLine(string.IsNullOrWhiteSpace(_currentSessionId)
-            ? "No current provider session."
-            : $"Current provider sessionId: {_currentSessionId}");
+        if (string.IsNullOrWhiteSpace(_currentSessionId))
+        {
+            System.Console.WriteLine("No current provider session.");
+            return;
+        }
+
+        System.Console.WriteLine($"Current provider sessionId: {_currentSessionId}");
+        System.Console.WriteLine(string.IsNullOrWhiteSpace(_lastPostedMessageId)
+            ? "Last posted publication/message id: none"
+            : $"Last posted publication/message id: {_lastPostedMessageId}");
     }
 
     private static string? ReadMultilineMessage()

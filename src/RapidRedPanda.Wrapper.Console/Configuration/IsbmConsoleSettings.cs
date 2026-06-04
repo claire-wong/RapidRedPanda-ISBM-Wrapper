@@ -5,11 +5,14 @@ namespace RapidRedPanda.Wrapper.Console.Configuration;
 internal sealed class IsbmConsoleSettings
 {
     public string Host { get; private init; } = "";
-    public string Channel { get; private init; } = "";
-    public string Topic { get; private init; } = "";
     public string User { get; private init; } = "";
     public string Password { get; private init; } = "";
     public bool IncludeRawDefault { get; private init; }
+    public IsbmServiceSettings Publication { get; private init; } = IsbmServiceSettings.Empty;
+    public IsbmServiceSettings Request { get; private init; } = IsbmServiceSettings.Empty;
+
+    public string Channel => Publication.Channel;
+    public string Topic => Publication.Topic;
 
     public static IsbmConsoleSettings Empty { get; } = new();
 
@@ -34,11 +37,11 @@ internal sealed class IsbmConsoleSettings
         return new IsbmConsoleSettings
         {
             Host = Pick(other.Host, Host),
-            Channel = Pick(other.Channel, Channel),
-            Topic = Pick(other.Topic, Topic),
             User = Pick(other.User, User),
             Password = Pick(other.Password, Password),
-            IncludeRawDefault = other.IncludeRawDefault || IncludeRawDefault
+            IncludeRawDefault = other.IncludeRawDefault || IncludeRawDefault,
+            Publication = Publication.Merge(other.Publication),
+            Request = Request.Merge(other.Request)
         };
     }
 
@@ -47,11 +50,23 @@ internal sealed class IsbmConsoleSettings
         return new IsbmConsoleSettings
         {
             Host = Pick(Environment.GetEnvironmentVariable("ISBM_HOST"), Host),
-            Channel = Pick(Environment.GetEnvironmentVariable("ISBM_CHANNEL"), Channel),
-            Topic = Pick(Environment.GetEnvironmentVariable("ISBM_TOPIC"), Topic),
             User = Pick(Environment.GetEnvironmentVariable("ISBM_USER"), User),
             Password = Pick(Environment.GetEnvironmentVariable("ISBM_PASSWORD"), Password),
-            IncludeRawDefault = ReadBoolEnvironment("ISBM_INCLUDE_RAW_DEFAULT") ?? IncludeRawDefault
+            IncludeRawDefault = ReadBoolEnvironment("ISBM_INCLUDE_RAW_DEFAULT") ?? IncludeRawDefault,
+            Publication = new IsbmServiceSettings
+            {
+                Channel = Pick(
+                    Environment.GetEnvironmentVariable("ISBM_PUBLICATION_CHANNEL"),
+                    Pick(Environment.GetEnvironmentVariable("ISBM_CHANNEL"), Publication.Channel)),
+                Topic = Pick(
+                    Environment.GetEnvironmentVariable("ISBM_PUBLICATION_TOPIC"),
+                    Pick(Environment.GetEnvironmentVariable("ISBM_TOPIC"), Publication.Topic))
+            },
+            Request = new IsbmServiceSettings
+            {
+                Channel = Pick(Environment.GetEnvironmentVariable("ISBM_REQUEST_CHANNEL"), Request.Channel),
+                Topic = Pick(Environment.GetEnvironmentVariable("ISBM_REQUEST_TOPIC"), Request.Topic)
+            }
         };
     }
 
@@ -68,14 +83,37 @@ internal sealed class IsbmConsoleSettings
             return Empty;
         }
 
+        var legacyPublication = new IsbmServiceSettings
+        {
+            Channel = ReadString(isbm, "Channel"),
+            Topic = ReadString(isbm, "Topic")
+        };
+
+        var publication = legacyPublication.Merge(ReadServiceSettings(isbm, "Publication"));
+        var request = ReadServiceSettings(isbm, "Request");
+
         return new IsbmConsoleSettings
         {
             Host = ReadString(isbm, "Host"),
-            Channel = ReadString(isbm, "Channel"),
-            Topic = ReadString(isbm, "Topic"),
             User = ReadString(isbm, "User"),
             Password = ReadString(isbm, "Password"),
-            IncludeRawDefault = ReadBool(isbm, "IncludeRawDefault")
+            IncludeRawDefault = ReadBool(isbm, "IncludeRawDefault"),
+            Publication = publication,
+            Request = request
+        };
+    }
+
+    private static IsbmServiceSettings ReadServiceSettings(JsonElement isbm, string propertyName)
+    {
+        if (!isbm.TryGetProperty(propertyName, out var section) || section.ValueKind != JsonValueKind.Object)
+        {
+            return IsbmServiceSettings.Empty;
+        }
+
+        return new IsbmServiceSettings
+        {
+            Channel = ReadString(section, "Channel"),
+            Topic = ReadString(section, "Topic")
         };
     }
 
@@ -85,6 +123,7 @@ internal sealed class IsbmConsoleSettings
         {
             Path.Combine(AppContext.BaseDirectory, fileName),
             Path.Combine(Directory.GetCurrentDirectory(), fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "src", "RapidRedPanda.Wrapper.Console", fileName),
             Path.Combine(Directory.GetCurrentDirectory(), "RapidRedPanda.Wrapper.Console", fileName)
         };
 
@@ -113,5 +152,22 @@ internal sealed class IsbmConsoleSettings
     private static string Pick(string? preferred, string fallback)
     {
         return string.IsNullOrWhiteSpace(preferred) ? fallback : preferred;
+    }
+}
+
+internal sealed class IsbmServiceSettings
+{
+    public static IsbmServiceSettings Empty { get; } = new();
+
+    public string Channel { get; init; } = "";
+    public string Topic { get; init; } = "";
+
+    public IsbmServiceSettings Merge(IsbmServiceSettings other)
+    {
+        return new IsbmServiceSettings
+        {
+            Channel = string.IsNullOrWhiteSpace(other.Channel) ? Channel : other.Channel,
+            Topic = string.IsNullOrWhiteSpace(other.Topic) ? Topic : other.Topic
+        };
     }
 }
