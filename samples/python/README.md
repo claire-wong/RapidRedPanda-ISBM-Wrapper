@@ -1,4 +1,4 @@
-# RapidRedPanda Wrapper Python Samples
+﻿# RapidRedPanda Wrapper Python Samples
 
 These samples demonstrate how Python applications can invoke `RapidRedPanda.Wrapper.Cli` and consume its JSON responses using only the Python standard library.
 
@@ -13,6 +13,24 @@ The CLI is a non-interactive, machine-friendly JSON command-line application. Py
 - .NET 8 SDK or Runtime
 - Python 3.10+
 
+## Configuration
+
+The samples read connection settings from `samples/python/sample_config.json`.
+
+1. Copy `sample_config.example.json`:
+
+```powershell
+Copy-Item samples/python/sample_config.example.json samples/python/sample_config.json
+```
+
+2. Rename the copy to `sample_config.json`.
+
+3. Replace all placeholder values with your own ISBM environment settings.
+
+4. Do not commit `sample_config.json`.
+
+The config file contains the host, credentials, and publication/request channels/topics used by the sample workflows. `sample_config.json` is ignored by Git so local credentials are not committed.
+
 ## Sample 01: Open Subscription
 
 `01_open_subscription.py` is a small "Hello World" example that:
@@ -22,7 +40,7 @@ The CLI is a non-interactive, machine-friendly JSON command-line application. Py
 - Checks whether the operation succeeded.
 - Displays the returned ISBM subscription session ID.
 
-Before running the sample, update the `HOST`, `CHANNEL`, `TOPIC`, `USER`, and `PASSWORD` constants near the top of the script.
+Before running the sample, create `samples/python/sample_config.json` as described in the Configuration section.
 
 This sample invokes the framework-dependent RapidRedPanda Wrapper CLI assembly through the `dotnet` host and therefore requires .NET 8 to be installed.
 
@@ -55,7 +73,7 @@ python samples/python/01_open_subscription.py
 From the repository root:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-subscription --host http://localhost/isbm/2.0 --channel /Example/Publication --topic Example:Topic --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-subscription --host http://your-server/isbm/2.0 --channel /Miami-Dade/Flood+Control/ISO18435:D1.2/Publication --topic OIIE:S30:V1.1/CCOM-JSON:SyncMeasurements:V1.0 --user your-username --password your-password
 ```
 
 ## Expected JSON Response
@@ -109,7 +127,7 @@ The sample exits with `0` on success, `1` when the CLI cannot be executed, `2` f
   Close the subscription session.
 ```
 
-Before running the sample, update the `HOST`, `USER`, and `PASSWORD` constants near the top of the script to match the connection used to open the subscription.
+Before running the sample, create `samples/python/sample_config.json` as described in the Configuration section.
 
 Usage:
 
@@ -126,7 +144,7 @@ python samples/python/02_read_publication.py c065133a-440f-4235-8fab-81bcc635528
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-publication --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 If no publication is available, the sample prints:
@@ -154,7 +172,7 @@ python samples/python/03_remove_publication.py c065133a-440f-4235-8fab-81bcc6355
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-publication --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 ## Sample 04: Close Subscription
@@ -176,7 +194,7 @@ python samples/python/04_close_subscription.py c065133a-440f-4235-8fab-81bcc6355
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-subscription --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-subscription --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 ## Full Consumer Publication Workflow
@@ -227,7 +245,7 @@ python samples/python/05_open_publication_session.py
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-publication-session --host http://localhost/isbm/2.0 --channel /Example/Publication --topic Example:Topic --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-publication-session --host http://your-server/isbm/2.0 --channel /Miami-Dade/Flood+Control/ISO18435:D1.2/Publication --topic OIIE:S30:V1.1/CCOM-JSON:SyncMeasurements:V1.0 --user your-username --password your-password
 ```
 
 2. Post publication:
@@ -239,7 +257,7 @@ python samples/python/06_post_publication.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-publication --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic Example:Topic --media-type application/json --content '{"messageType":"SyncMeasurements"}' --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S30:V1.1/CCOM-JSON:SyncMeasurements:V1.0 --media-type application/json --content '{"messageType":"SyncMeasurements"}' --user your-username --password your-password
 ```
 
 3. Expire publication:
@@ -251,7 +269,7 @@ python samples/python/07_expire_publication.py <session-id> <message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll expire-publication --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --message-id message-123 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll expire-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --message-id message-123 --user your-username --password your-password
 ```
 
 4. Close publication session:
@@ -263,7 +281,7 @@ python samples/python/08_close_publication_session.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-publication-session --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-publication-session --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 ## Consumer Request Workflow
@@ -297,7 +315,7 @@ python samples/python/09_open_request_session.py
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-request-session --host http://localhost/isbm/2.0 --channel /Example/Request --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-request-session --host http://your-server/isbm/2.0 --channel /Miami-Dade/Flood+Control/ISO18435:D1.2/Request --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --user your-username --password your-password
 ```
 
 2. Post request:
@@ -309,7 +327,7 @@ python samples/python/10_post_request.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-request --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --media-type application/json --content '{"messageType":"GetMeasurements"}' --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --media-type application/json --content '{"messageType":"GetMeasurements"}' --user your-username --password your-password
 ```
 
 3. Read response:
@@ -321,7 +339,7 @@ python samples/python/11_read_response.py <session-id> <request-message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-response --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-response --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --user your-username --password your-password
 ```
 
 4. Remove response:
@@ -333,7 +351,7 @@ python samples/python/12_remove_response.py <session-id> <request-message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-response --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-response --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --user your-username --password your-password
 ```
 
 5. Expire request:
@@ -345,7 +363,7 @@ python samples/python/13_expire_request.py <session-id> <message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll expire-request --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --message-id request-123 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll expire-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --message-id request-123 --user your-username --password your-password
 ```
 
 6. Close request session:
@@ -357,7 +375,7 @@ python samples/python/14_close_request_session.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-request-session --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-request-session --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 ## Provider Request Workflow
@@ -383,7 +401,7 @@ python samples/python/15_open_provider_request_session.py
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-provider-request-session --host http://localhost/isbm/2.0 --channel /Example/Request --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll open-provider-request-session --host http://your-server/isbm/2.0 --channel /Miami-Dade/Flood+Control/ISO18435:D1.2/Request --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --user your-username --password your-password
 ```
 
 2. Read request:
@@ -395,7 +413,7 @@ python samples/python/16_read_request.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-request --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll read-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 3. Post response:
@@ -407,7 +425,7 @@ python samples/python/17_post_response.py <session-id> <request-message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-response --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --media-type application/json --content '{"messageType":"Response","status":"Accepted"}' --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-response --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --media-type application/json --content '{"messageType":"Response","status":"Accepted"}' --user your-username --password your-password
 ```
 
 4. Remove request:
@@ -419,7 +437,7 @@ python samples/python/18_remove_request.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-request --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll remove-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
 
 5. Close provider request session:
@@ -431,5 +449,7 @@ python samples/python/19_close_provider_request_session.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-provider-request-session --host http://localhost/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user Tester1 --password Password1
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll close-provider-request-session --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --user your-username --password your-password
 ```
+
+

@@ -18,11 +18,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from config_loader import ConfigError, load_config
 
-# Use the same ISBM connection values that were used to open the request session.
-HOST = "http://104.239.197.5/isbm/2.0"
-USER = "Tester1"
-PASSWORD = "Password1"
 
 # The framework-dependent CLI assembly is expected in the Debug build output.
 CLI_DLL = (
@@ -42,22 +39,22 @@ EXIT_READ_RESPONSE_FAILED = 3
 EXIT_INVALID_USAGE = 4
 
 
-def build_command(session_id: str, request_message_id: str) -> list[str]:
+def build_command(config: dict[str, str], session_id: str, request_message_id: str) -> list[str]:
     """Build the dotnet CLI command-line arguments for read-response."""
     return [
         "dotnet",
         str(CLI_DLL),
         "read-response",
         "--host",
-        HOST,
+        config["host"],
         "--session-id",
         session_id,
         "--request-message-id",
         request_message_id,
         "--user",
-        USER,
+        config["user"],
         "--password",
-        PASSWORD,
+        config["password"],
     ]
 
 
@@ -77,11 +74,11 @@ def print_failure_details(response: dict[str, object]) -> None:
     print(json.dumps(fault, indent=2))
 
 
-def run_cli(session_id: str, request_message_id: str) -> tuple[int, str, str]:
+def run_cli(config: dict[str, str], session_id: str, request_message_id: str) -> tuple[int, str, str]:
     """Execute the CLI and return process code, stdout, and stderr."""
     try:
         result = subprocess.run(
-            build_command(session_id, request_message_id),
+            build_command(config, session_id, request_message_id),
             capture_output=True,
             text=True,
             check=False,
@@ -172,6 +169,12 @@ def main() -> int:
         print_usage()
         return EXIT_INVALID_USAGE
 
+    try:
+        config = load_config()
+    except ConfigError as error:
+        print(error, file=sys.stderr)
+        return EXIT_CLI_EXECUTION_FAILURE
+
     if not CLI_DLL.exists():
         print("RapidRedPanda Wrapper CLI DLL not found.", file=sys.stderr)
         print(file=sys.stderr)
@@ -185,7 +188,7 @@ def main() -> int:
 
     session_id = sys.argv[1].strip()
     request_message_id = sys.argv[2].strip()
-    return_code, stdout, stderr = run_cli(session_id, request_message_id)
+    return_code, stdout, stderr = run_cli(config, session_id, request_message_id)
     if return_code == EXIT_CLI_EXECUTION_FAILURE and not stdout.strip():
         return EXIT_CLI_EXECUTION_FAILURE
 
@@ -218,3 +221,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

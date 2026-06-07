@@ -1,0 +1,9 @@
+{
+  "host": "http://your-server/isbm/2.0",
+  "publicationChannel": "/YourOrganization/Publication",
+  "requestChannel": "/YourOrganization/Request",
+  "publicationTopic": "YourPublicationTopic",
+  "requestTopic": "YourRequestTopic",
+  "user": "your-username",
+  "password": "your-password"
+}

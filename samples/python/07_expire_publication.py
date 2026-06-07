@@ -18,10 +18,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from config_loader import ConfigError, load_config
 
-HOST = "http://104.239.197.5/isbm/2.0"
-USER = "Tester1"
-PASSWORD = "Password1"
 
 CLI_DLL = (
     Path(__file__).resolve().parents[2]
@@ -40,21 +38,21 @@ EXIT_EXPIRE_PUBLICATION_FAILED = 3
 EXIT_INVALID_USAGE = 4
 
 
-def build_command(session_id: str, message_id: str) -> list[str]:
+def build_command(config: dict[str, str], session_id: str, message_id: str) -> list[str]:
     return [
         "dotnet",
         str(CLI_DLL),
         "expire-publication",
         "--host",
-        HOST,
+        config["host"],
         "--session-id",
         session_id,
         "--message-id",
         message_id,
         "--user",
-        USER,
+        config["user"],
         "--password",
-        PASSWORD,
+        config["password"],
     ]
 
 
@@ -68,9 +66,9 @@ def print_failure_details(response: dict[str, object]) -> None:
     print(json.dumps(fault, indent=2) if fault is not None else "The CLI did not provide fault details.")
 
 
-def run_cli(session_id: str, message_id: str) -> tuple[int, str, str]:
+def run_cli(config: dict[str, str], session_id: str, message_id: str) -> tuple[int, str, str]:
     try:
-        result = subprocess.run(build_command(session_id, message_id), capture_output=True, text=True, check=False)
+        result = subprocess.run(build_command(config, session_id, message_id), capture_output=True, text=True, check=False)
     except FileNotFoundError:
         print("The .NET runtime or SDK could not be found.", file=sys.stderr)
         print(file=sys.stderr)
@@ -111,6 +109,12 @@ def main() -> int:
     print("--------------------------")
     print()
 
+    try:
+        config = load_config()
+    except ConfigError as error:
+        print(error, file=sys.stderr)
+        return EXIT_CLI_EXECUTION_FAILURE
+
     if not CLI_DLL.exists():
         print("RapidRedPanda Wrapper CLI DLL not found.", file=sys.stderr)
         print(file=sys.stderr)
@@ -122,7 +126,7 @@ def main() -> int:
         print("dotnet build", file=sys.stderr)
         return EXIT_CLI_EXECUTION_FAILURE
 
-    return_code, stdout, stderr = run_cli(session_id, message_id)
+    return_code, stdout, stderr = run_cli(config, session_id, message_id)
     if return_code != 0 and not stdout.strip():
         print(f"The CLI process exited unexpectedly with code {return_code}.", file=sys.stderr)
         if stderr:
@@ -150,3 +154,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

@@ -1,4 +1,4 @@
-# RapidRedPanda-ISBM-Wrapper
+﻿# RapidRedPanda-ISBM-Wrapper
 .NET 8 wrapper, production automation CLI, and testing toolkit for RapidRedPanda ISBM Client Adapter.
 
 ## Repository layout
@@ -6,8 +6,8 @@
 - `src/RapidRedPanda.Wrapper` - core reusable .NET wrapper library over `RapidRedPanda.ISBM.ClientAdapter`.
 - `src/RapidRedPanda.Wrapper.Cli` - production, non-interactive, machine-friendly JSON CLI for Python, AI agents, and automation clients.
 - `samples/csharp/RapidRedPanda.Wrapper.Console` - C# testing/demo console app with interactive publication/subscription workflows.
+- `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json` - template local settings for the C# console sample.
 - `docs/SDK_STUDY.md` - notes on the wrapped SDK and observed ISBM behavior.
-- `samples/appsettings.Development.example.json` - sample local settings for the console app.
 - `tests` - reserved for future test projects.
 
 ## Build
@@ -28,7 +28,12 @@ dotnet run --project tests/RapidRedPanda.Wrapper.Tests/RapidRedPanda.Wrapper.Tes
 ## Local configuration
 
 The console app can load `appsettings.json` or `appsettings.Development.json` from the app base directory, current directory, or `samples/csharp/RapidRedPanda.Wrapper.Console`.
-Use `samples/appsettings.Development.example.json` as the template for local development settings.
+Use `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json` as the template for local development settings:
+
+1. Copy `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json`.
+2. Rename the copy to `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.Development.json`.
+3. Edit `Host`, `User`, `Password`, and any channel/topic values for your own ISBM environment.
+4. Do not commit `appsettings.Development.json`; it is ignored by Git.
 
 ## Python samples
 
@@ -58,7 +63,7 @@ Python does not directly load the wrapper class library or use the C# testing/de
 `open-subscription` accepts optional JSONPath filter flags. The wrapper models filter expressions as a collection because the ISBM `filterExpressions` field is an array, and maps them to the SDK `OpenSubscriptionSessionOptions.FilterExpressions` model:
 
 ```powershell
-dotnet run --project samples/csharp/RapidRedPanda.Wrapper.Console -- open-subscription --host http://your-isbm-server/isbm/2.0 --channel /YourOrganization/YourPublicationChannel --topic YourPublicationTopic --user YourUser --password YourPassword --filter-media-type application/json --filter-language JSONPath --filter-language-version com.jayway.jsonpath:json-path:2.4.0 --filter-expression "$['LoremIpsum'][?(@.field == 'SomeText')]"
+dotnet run --project samples/csharp/RapidRedPanda.Wrapper.Console -- open-subscription --host http://your-isbm-server/isbm/2.0 --channel /YourOrganization/Publication --topic YourPublicationTopic --user your-username --password your-password --filter-media-type application/json --filter-language JSONPath --filter-language-version com.jayway.jsonpath:json-path:2.4.0 --filter-expression "$['LoremIpsum'][?(@.field == 'SomeText')]"
 ```
 
 The installed `RapidRedPanda.ISBM.ClientAdapter` package exposes applicable media types and expression strings for subscription filters. It does not expose a namespace collection on `FilterExpression` in version `2.0.2.4`, so namespace values are returned as wrapper validation failures.
@@ -87,3 +92,4 @@ Filter expressions are supported only where the current SDK exposes `FilterExpre
 - Provider Request `OpenProviderRequestSession`
 
 Filter expressions are not supported for Provider Publication or Consumer Request session operations.
+
