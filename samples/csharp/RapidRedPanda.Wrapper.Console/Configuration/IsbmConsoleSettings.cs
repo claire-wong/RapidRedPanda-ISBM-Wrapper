@@ -123,7 +123,7 @@ internal sealed class IsbmConsoleSettings
         {
             Path.Combine(AppContext.BaseDirectory, fileName),
             Path.Combine(Directory.GetCurrentDirectory(), fileName),
-            Path.Combine(Directory.GetCurrentDirectory(), "src", "RapidRedPanda.Wrapper.Console", fileName),
+            Path.Combine(Directory.GetCurrentDirectory(), "samples", "csharp", "RapidRedPanda.Wrapper.Console", fileName),
             Path.Combine(Directory.GetCurrentDirectory(), "RapidRedPanda.Wrapper.Console", fileName)
         };
 

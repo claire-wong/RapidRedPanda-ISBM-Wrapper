@@ -188,7 +188,7 @@ public sealed class ConsumerRequestWrapper
     public WrapperResponse ExpireRequest(
         string host,
         string sessionId,
-        string requestId,
+        string messageId,
         string user,
         string password,
         bool includeRaw = false)
@@ -196,7 +196,7 @@ public sealed class ConsumerRequestWrapper
         var missing = ValidateRequired(
             ("host", host),
             ("session-id", sessionId),
-            ("request-id", requestId),
+            ("message-id", messageId),
             ("user", user),
             ("password", password));
 
@@ -208,7 +208,7 @@ public sealed class ConsumerRequestWrapper
         try
         {
             var service = CreateService(user, password);
-            var response = service.ExpireRequest(host, sessionId, requestId);
+            var response = service.ExpireRequest(host, sessionId, messageId);
 
             if (response.StatusCode != 204)
             {

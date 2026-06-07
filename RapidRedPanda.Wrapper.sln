@@ -3,11 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RapidRedPanda.Wrapper.Console", "src\RapidRedPanda.Wrapper.Console\RapidRedPanda.Wrapper.Console.csproj", "{172F5B3A-DEED-4F11-BF06-1FD81C3BBAB5}"
-	ProjectSection(ProjectDependencies) = postProject
-		{6C334188-7911-4C36-BC27-1BE143ABB5F3} = {6C334188-7911-4C36-BC27-1BE143ABB5F3}
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RapidRedPanda.Wrapper", "src\RapidRedPanda.Wrapper\RapidRedPanda.Wrapper.csproj", "{6C334188-7911-4C36-BC27-1BE143ABB5F3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8CFFA550-807B-405D-816C-8E8475C7DA45}"
@@ -17,16 +12,22 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RapidRedPanda.Wrapper.Tests
 		{6C334188-7911-4C36-BC27-1BE143ABB5F3} = {6C334188-7911-4C36-BC27-1BE143ABB5F3}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BF2909AA-1824-49D2-AD3C-2AD619F5C147}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RapidRedPanda.Wrapper.Cli", "src\RapidRedPanda.Wrapper.Cli\RapidRedPanda.Wrapper.Cli.csproj", "{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{54E4EC4B-24A2-45D1-8D5A-35265BE5D8BB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "csharp", "csharp", "{3A2C1F4A-99A3-43EA-A2AD-26A4DB9DB6F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RapidRedPanda.Wrapper.Console", "samples\csharp\RapidRedPanda.Wrapper.Console\RapidRedPanda.Wrapper.Console.csproj", "{F648AF61-DEF1-4798-91FC-73B0A65B91BC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{172F5B3A-DEED-4F11-BF06-1FD81C3BBAB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{172F5B3A-DEED-4F11-BF06-1FD81C3BBAB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{172F5B3A-DEED-4F11-BF06-1FD81C3BBAB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{172F5B3A-DEED-4F11-BF06-1FD81C3BBAB5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6C334188-7911-4C36-BC27-1BE143ABB5F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6C334188-7911-4C36-BC27-1BE143ABB5F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C334188-7911-4C36-BC27-1BE143ABB5F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -35,11 +36,22 @@ Global
 		{54ABBEA7-76D7-44A4-A164-DE65AC53C69D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54ABBEA7-76D7-44A4-A164-DE65AC53C69D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54ABBEA7-76D7-44A4-A164-DE65AC53C69D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F648AF61-DEF1-4798-91FC-73B0A65B91BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F648AF61-DEF1-4798-91FC-73B0A65B91BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F648AF61-DEF1-4798-91FC-73B0A65B91BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F648AF61-DEF1-4798-91FC-73B0A65B91BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{54ABBEA7-76D7-44A4-A164-DE65AC53C69D} = {8CFFA550-807B-405D-816C-8E8475C7DA45}
+		{6B6B29CD-D9FA-4BA8-B1BC-215E36A325F3} = {BF2909AA-1824-49D2-AD3C-2AD619F5C147}
+		{3A2C1F4A-99A3-43EA-A2AD-26A4DB9DB6F7} = {54E4EC4B-24A2-45D1-8D5A-35265BE5D8BB}
+		{F648AF61-DEF1-4798-91FC-73B0A65B91BC} = {3A2C1F4A-99A3-43EA-A2AD-26A4DB9DB6F7}
 	EndGlobalSection
 EndGlobal
