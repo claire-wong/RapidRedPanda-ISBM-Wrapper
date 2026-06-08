@@ -15,21 +15,10 @@ No third-party dependencies are required.
 import json
 import subprocess
 import sys
-from pathlib import Path
-
+from cli_locator import CliNotFoundError, get_cli_command_prefix, print_cli_not_found
 from config_loader import ConfigError, load_config
 
 
-# The framework-dependent CLI assembly is expected in the Debug build output.
-CLI_DLL = (
-    Path(__file__).resolve().parents[2]
-    / "src"
-    / "RapidRedPanda.Wrapper.Cli"
-    / "bin"
-    / "Debug"
-    / "net8.0"
-    / "RapidRedPanda.Wrapper.Cli.dll"
-)
 
 EXIT_SUCCESS = 0
 EXIT_WRAPPER_EXECUTION_FAILURE = 1
@@ -37,11 +26,9 @@ EXIT_INVALID_RESPONSE = 2
 EXIT_SUBSCRIPTION_FAILED = 3
 
 
-def build_command(config: dict[str, str]) -> list[str]:
+def build_command(cli_command_prefix: list[str], config: dict[str, str]) -> list[str]:
     """Build the dotnet CLI command-line arguments for open-subscription."""
-    return [
-        "dotnet",
-        str(CLI_DLL),
+    return cli_command_prefix + [
         "open-subscription",
         "--host",
         config["host"],
@@ -79,21 +66,16 @@ def main() -> int:
         print(error, file=sys.stderr)
         return EXIT_WRAPPER_EXECUTION_FAILURE
 
-    if not CLI_DLL.exists():
-        print("RapidRedPanda Wrapper CLI DLL not found.", file=sys.stderr)
-        print(file=sys.stderr)
-        print("Expected location:", file=sys.stderr)
-        print(CLI_DLL, file=sys.stderr)
-        print(file=sys.stderr)
-        print("Build the wrapper first:", file=sys.stderr)
-        print(file=sys.stderr)
-        print("dotnet build", file=sys.stderr)
+    try:
+        cli_command_prefix = get_cli_command_prefix()
+    except CliNotFoundError as error:
+        print_cli_not_found(error)
         return EXIT_WRAPPER_EXECUTION_FAILURE
 
-    # Execute the CLI assembly through the dotnet host and capture its JSON output.
+    # Execute the CLI and capture its JSON output.
     try:
         result = subprocess.run(
-            build_command(config),
+            build_command(cli_command_prefix, config),
             capture_output=True,
             text=True,
             check=False,
@@ -101,10 +83,10 @@ def main() -> int:
     except FileNotFoundError:
         print("The .NET runtime or SDK could not be found.", file=sys.stderr)
         print(file=sys.stderr)
-        print("Install .NET 8 and verify the 'dotnet' command is available.", file=sys.stderr)
+        print("Install .NET 8 when using the source-build DLL fallback, or use a self-contained release package.", file=sys.stderr)
         return EXIT_WRAPPER_EXECUTION_FAILURE
     except OSError as error:
-        print(f"Unable to execute the CLI through dotnet: {error}", file=sys.stderr)
+        print(f"Unable to execute the CLI: {error}", file=sys.stderr)
         return EXIT_WRAPPER_EXECUTION_FAILURE
 
     if result.returncode != 0 and not result.stdout.strip():
@@ -158,5 +140,6 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 

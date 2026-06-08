@@ -25,6 +25,29 @@ The test project is a small executable harness with no third-party test framewor
 dotnet run --project tests/RapidRedPanda.Wrapper.Tests/RapidRedPanda.Wrapper.Tests.csproj
 ```
 
+## Creating Release Packages
+
+Create self-contained release assets for Windows x64, Linux x64, and Linux ARM64:
+
+```powershell
+.\scripts\release.ps1 0.3.3
+```
+
+Generated release assets are placed in:
+
+```text
+artifacts/
+```
+
+The generated `.zip` and `.tar.gz` files can be uploaded directly to a GitHub Release.
+
+Each release package includes:
+
+- Self-contained CLI binaries
+- Python examples
+- Sample configuration templates
+- Documentation
+
 ## Local configuration
 
 The console app can load `appsettings.json` or `appsettings.Development.json` from the app base directory, current directory, or `samples/csharp/RapidRedPanda.Wrapper.Console`.

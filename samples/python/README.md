@@ -10,8 +10,12 @@ The CLI is a non-interactive, machine-friendly JSON command-line application. Py
 
 ## Prerequisites
 
-- .NET 8 SDK or Runtime
 - Python 3.10+
+- One of:
+  - A self-contained RapidRedPanda Wrapper release package
+  - A source checkout built with `dotnet build`
+
+.NET 8 is required only when running from a source checkout with the Debug CLI DLL fallback. A self-contained release package can run the CLI executable directly.
 
 ## Configuration
 
@@ -31,6 +35,18 @@ Copy-Item samples/python/sample_config.example.json samples/python/sample_config
 
 The config file contains the host, credentials, and publication/request channels/topics used by the sample workflows. `sample_config.json` is ignored by Git so local credentials are not committed.
 
+## CLI Discovery
+
+The Python samples automatically locate `RapidRedPanda.Wrapper.Cli` and do not need to be edited when moving between Windows, Linux, macOS, and source checkouts.
+
+From `samples/python/*.py`, the samples check these locations in order:
+
+1. `../../RapidRedPanda.Wrapper.Cli`
+2. `../../RapidRedPanda.Wrapper.Cli.exe`
+3. `../../src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll`
+
+When a deployed executable is found, it is invoked directly. When the Debug DLL is found, it is invoked through `dotnet`.
+
 ## Sample 01: Open Subscription
 
 `01_open_subscription.py` is a small "Hello World" example that:
@@ -42,19 +58,11 @@ The config file contains the host, credentials, and publication/request channels
 
 Before running the sample, create `samples/python/sample_config.json` as described in the Configuration section.
 
-This sample invokes the framework-dependent RapidRedPanda Wrapper CLI assembly through the `dotnet` host and therefore requires .NET 8 to be installed.
-
-The sample expects the CLI DLL at:
-
-```text
-src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll
-```
-
-The location is stored in `CLI_DLL` so it can be changed easily.
+This sample invokes either the deployed self-contained CLI executable or the source-build Debug CLI DLL, depending on which one is available.
 
 ## Build
 
-From the repository root, build the solution in Debug configuration:
+From a source checkout, build the solution in Debug configuration:
 
 ```powershell
 dotnet build
@@ -66,6 +74,24 @@ From the repository root:
 
 ```powershell
 python samples/python/01_open_subscription.py
+```
+
+## Release Package Usage
+
+After extracting a self-contained release package, create `samples/python/sample_config.json` from `samples/python/sample_config.example.json`, update it for your ISBM environment, and run the samples directly from the package root.
+
+From a deployed Linux or macOS release package:
+
+```bash
+cd RapidRedPanda-ISBM-Wrapper
+python3 samples/python/01_open_subscription.py
+```
+
+From a deployed Windows release package:
+
+```powershell
+cd RapidRedPanda-ISBM-Wrapper
+python samples\python\01_open_subscription.py
 ```
 
 ## Test The CLI Manually

@@ -16,21 +16,10 @@ No third-party dependencies are required.
 import json
 import subprocess
 import sys
-from pathlib import Path
-
+from cli_locator import CliNotFoundError, get_cli_command_prefix, print_cli_not_found
 from config_loader import ConfigError, load_config
 
 
-# The framework-dependent CLI assembly is expected in the Debug build output.
-CLI_DLL = (
-    Path(__file__).resolve().parents[2]
-    / "src"
-    / "RapidRedPanda.Wrapper.Cli"
-    / "bin"
-    / "Debug"
-    / "net8.0"
-    / "RapidRedPanda.Wrapper.Cli.dll"
-)
 
 EXIT_SUCCESS = 0
 EXIT_CLI_EXECUTION_FAILURE = 1
@@ -39,11 +28,9 @@ EXIT_READ_PUBLICATION_FAILED = 3
 EXIT_INVALID_USAGE = 4
 
 
-def build_command(config: dict[str, str], session_id: str) -> list[str]:
+def build_command(cli_command_prefix: list[str], config: dict[str, str], session_id: str) -> list[str]:
     """Build the dotnet CLI command-line arguments for read-publication."""
-    return [
-        "dotnet",
-        str(CLI_DLL),
+    return cli_command_prefix + [
         "read-publication",
         "--host",
         config["host"],
@@ -72,11 +59,11 @@ def print_failure_details(response: dict[str, object]) -> None:
     print(json.dumps(fault, indent=2))
 
 
-def run_cli(config: dict[str, str], session_id: str) -> tuple[int, str, str]:
+def run_cli(cli_command_prefix: list[str], config: dict[str, str], session_id: str) -> tuple[int, str, str]:
     """Execute the CLI and return process code, stdout, and stderr."""
     try:
         result = subprocess.run(
-            build_command(config, session_id),
+            build_command(cli_command_prefix, config, session_id),
             capture_output=True,
             text=True,
             check=False,
@@ -84,10 +71,10 @@ def run_cli(config: dict[str, str], session_id: str) -> tuple[int, str, str]:
     except FileNotFoundError:
         print("The .NET runtime or SDK could not be found.", file=sys.stderr)
         print(file=sys.stderr)
-        print("Install .NET 8 and verify the 'dotnet' command is available.", file=sys.stderr)
+        print("Install .NET 8 when using the source-build DLL fallback, or use a self-contained release package.", file=sys.stderr)
         return EXIT_CLI_EXECUTION_FAILURE, "", ""
     except OSError as error:
-        print(f"Unable to execute the CLI through dotnet: {error}", file=sys.stderr)
+        print(f"Unable to execute the CLI: {error}", file=sys.stderr)
         return EXIT_CLI_EXECUTION_FAILURE, "", ""
 
     return result.returncode, result.stdout, result.stderr
@@ -182,18 +169,13 @@ def main() -> int:
         print(error, file=sys.stderr)
         return EXIT_CLI_EXECUTION_FAILURE
 
-    if not CLI_DLL.exists():
-        print("RapidRedPanda Wrapper CLI DLL not found.", file=sys.stderr)
-        print(file=sys.stderr)
-        print("Expected location:", file=sys.stderr)
-        print(CLI_DLL, file=sys.stderr)
-        print(file=sys.stderr)
-        print("Build the wrapper first:", file=sys.stderr)
-        print(file=sys.stderr)
-        print("dotnet build", file=sys.stderr)
+    try:
+        cli_command_prefix = get_cli_command_prefix()
+    except CliNotFoundError as error:
+        print_cli_not_found(error)
         return EXIT_CLI_EXECUTION_FAILURE
 
-    return_code, stdout, stderr = run_cli(config, sys.argv[1].strip())
+    return_code, stdout, stderr = run_cli(cli_command_prefix, config, sys.argv[1].strip())
     if return_code == EXIT_CLI_EXECUTION_FAILURE and not stdout.strip():
         return EXIT_CLI_EXECUTION_FAILURE
 
@@ -230,5 +212,6 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 

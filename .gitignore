@@ -88,6 +88,8 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 .artifacts/
+*.zip
+*.tar.gz
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
