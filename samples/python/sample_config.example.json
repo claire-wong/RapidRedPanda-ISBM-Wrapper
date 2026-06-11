@@ -5,5 +5,17 @@
   "publicationTopic": "YourPublicationTopic",
   "requestTopic": "YourRequestTopic",
   "user": "your-username",
-  "password": "your-password"
+  "password": "your-password",
+  "_subscriptionFilterExpression": {
+    "expression": "$.DataArea.Show.Measurement[?(@.value > 100)]",
+    "language": "JsonPath",
+    "languageVersion": "1.0",
+    "mediaType": "application/json"
+  },
+  "_providerRequestFilterExpression": {
+    "expression": "$.DataArea.Show.Measurement[?(@.value > 100)]",
+    "language": "JsonPath",
+    "languageVersion": "1.0",
+    "mediaType": "application/json"
+  }
 }

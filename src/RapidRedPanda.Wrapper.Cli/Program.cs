@@ -8,6 +8,9 @@ const int SuccessExitCode = 0;
 const int CliExecutionFailureExitCode = 1;
 const int InvalidArgumentsExitCode = 2;
 const int WrapperOperationFailureExitCode = 3;
+const string DefaultFilterLanguage = "JSONPath";
+const string DefaultFilterLanguageVersion = "com.jayway.jsonpath:json-path:2.4.0";
+const string DefaultFilterMediaType = "application/json";
 
 var jsonOptions = new JsonSerializerOptions
 {
@@ -37,7 +40,8 @@ try
             parseResult.Get("--topic"),
             parseResult.Get("--user"),
             parseResult.Get("--password"),
-            parseResult.Has("--raw")),
+            parseResult.Has("--raw"),
+            BuildFilterExpressions(parseResult)),
         "read-publication" => consumerPublicationWrapper.ReadPublication(
             parseResult.Get("--host"),
             parseResult.Get("--session-id"),
@@ -138,7 +142,8 @@ try
             parseResult.Get("--topic"),
             parseResult.Get("--user"),
             parseResult.Get("--password"),
-            parseResult.Has("--raw")),
+            parseResult.Has("--raw"),
+            BuildFilterExpressions(parseResult)),
         "read-request" => providerRequestWrapper.ReadRequest(
             parseResult.Get("--host"),
             parseResult.Get("--session-id"),
@@ -209,6 +214,40 @@ static WrapperResponse WithCommand(WrapperResponse response, string command)
     };
 }
 
+static IReadOnlyCollection<WrapperFilterExpression>? BuildFilterExpressions(CliArguments arguments)
+{
+    var filterExpression = arguments.GetOptional("--filter-expression");
+    if (string.IsNullOrWhiteSpace(filterExpression))
+    {
+        return null;
+    }
+
+    var filterLanguage = arguments.GetOptional("--filter-language");
+    var filterLanguageVersion = arguments.GetOptional("--filter-language-version");
+    var filterMediaType = arguments.GetOptional("--filter-media-type");
+
+    return
+    [
+        new WrapperFilterExpression
+        {
+            ApplicableMediaTypes = SplitList(filterMediaType ?? DefaultFilterMediaType),
+            Expression = filterExpression,
+            Language = string.IsNullOrWhiteSpace(filterLanguage) ? DefaultFilterLanguage : filterLanguage,
+            LanguageVersion = string.IsNullOrWhiteSpace(filterLanguageVersion)
+                ? DefaultFilterLanguageVersion
+                : filterLanguageVersion,
+            Namespaces = []
+        }
+    ];
+}
+
+static List<string> SplitList(string value)
+{
+    return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(item => !string.IsNullOrWhiteSpace(item))
+        .ToList();
+}
+
 internal sealed class CliArguments
 {
     private static readonly HashSet<string> SupportedCommands =
@@ -245,6 +284,10 @@ internal sealed class CliArguments
         "--media-type",
         "--content",
         "--expiry",
+        "--filter-expression",
+        "--filter-language",
+        "--filter-language-version",
+        "--filter-media-type",
         "--user",
         "--password",
         "--raw"
@@ -285,7 +328,6 @@ internal sealed class CliArguments
         [
             "--host",
             "--channel",
-            "--topic",
             "--user",
             "--password"
         ],
@@ -294,7 +336,6 @@ internal sealed class CliArguments
             "--host",
             "--session-id",
             "--topic",
-            "--media-type",
             "--content",
             "--user",
             "--password"
@@ -318,7 +359,6 @@ internal sealed class CliArguments
         [
             "--host",
             "--channel",
-            "--topic",
             "--user",
             "--password"
         ],
@@ -327,7 +367,6 @@ internal sealed class CliArguments
             "--host",
             "--session-id",
             "--topic",
-            "--media-type",
             "--content",
             "--user",
             "--password"
@@ -383,7 +422,6 @@ internal sealed class CliArguments
             "--host",
             "--session-id",
             "--request-message-id",
-            "--media-type",
             "--content",
             "--user",
             "--password"
@@ -413,6 +451,10 @@ internal sealed class CliArguments
             "--topic",
             "--user",
             "--password",
+            "--filter-expression",
+            "--filter-language",
+            "--filter-language-version",
+            "--filter-media-type",
             "--raw"
         ],
         ["read-publication"] =
@@ -540,6 +582,10 @@ internal sealed class CliArguments
             "--topic",
             "--user",
             "--password",
+            "--filter-expression",
+            "--filter-language",
+            "--filter-language-version",
+            "--filter-media-type",
             "--raw"
         ],
         ["read-request"] =
@@ -557,8 +603,6 @@ internal sealed class CliArguments
             "--request-message-id",
             "--media-type",
             "--content",
-            "--expiry",
-            "--topic",
             "--user",
             "--password",
             "--raw"
@@ -649,6 +693,11 @@ internal sealed class CliArguments
             }
         }
 
+        if (HasFilterOptionWithoutExpression(options))
+        {
+            return Failure(command, "--filter-expression is required when filter options are provided.");
+        }
+
         return new CliArguments(command, options, null);
     }
 
@@ -670,6 +719,17 @@ internal sealed class CliArguments
     private static CliArguments Failure(string command, string error)
     {
         return new CliArguments(command, new Dictionary<string, string?>(OptionComparer), error);
+    }
+
+    private static bool HasFilterOptionWithoutExpression(Dictionary<string, string?> options)
+    {
+        var hasFilterExpression = options.TryGetValue("--filter-expression", out var filterExpression)
+            && !string.IsNullOrWhiteSpace(filterExpression);
+
+        return !hasFilterExpression
+            && (options.ContainsKey("--filter-language")
+                || options.ContainsKey("--filter-language-version")
+                || options.ContainsKey("--filter-media-type"));
     }
 
     private static string BuildMissingRequiredArgumentMessage(string command, string option)

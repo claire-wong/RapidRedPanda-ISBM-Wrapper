@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 
 CONFIG_PATH = Path(__file__).resolve().parent / "sample_config.json"
@@ -16,12 +17,17 @@ REQUIRED_FIELDS = [
     "password",
 ]
 
+OPTIONAL_FILTER_SECTIONS = [
+    "subscriptionFilterExpression",
+    "providerRequestFilterExpression",
+]
+
 
 class ConfigError(Exception):
     """Raised when the Python sample configuration is missing or invalid."""
 
 
-def load_config() -> dict[str, str]:
+def load_config() -> dict[str, Any]:
     """Load and validate sample_config.json."""
     if not CONFIG_PATH.exists():
         raise ConfigError(
@@ -42,7 +48,7 @@ def load_config() -> dict[str, str]:
     if not isinstance(raw_config, dict):
         raise ConfigError("Configuration file must contain a JSON object.")
 
-    config: dict[str, str] = {}
+    config: dict[str, Any] = {}
     missing_fields: list[str] = []
     invalid_fields: list[str] = []
 
@@ -63,4 +69,55 @@ def load_config() -> dict[str, str]:
         invalid = ", ".join(invalid_fields)
         raise ConfigError(f"Configuration field(s) must be non-empty strings: {invalid}.")
 
+    for section_name in OPTIONAL_FILTER_SECTIONS:
+        if section_name in raw_config:
+            config[section_name] = raw_config[section_name]
+
     return config
+
+
+def build_filter_arguments(config: dict[str, Any], section_name: str) -> list[str]:
+    """Build optional CLI filter arguments from a named filterExpression section."""
+    filter_config = config.get(section_name)
+    if filter_config is None:
+        return []
+
+    if not isinstance(filter_config, dict):
+        raise ConfigError(f"Configuration field '{section_name}' must contain a JSON object.")
+
+    expression = _get_optional_string(filter_config, "expression", section_name)
+    language = _get_optional_string(filter_config, "language", section_name)
+    language_version = _get_optional_string(filter_config, "languageVersion", section_name)
+    media_type = _get_optional_string(filter_config, "mediaType", section_name)
+
+    if expression is None:
+        raise ConfigError(f"Configuration field '{section_name}.expression' is required when '{section_name}' is provided.")
+
+    if language is None:
+        raise ConfigError(f"Configuration field '{section_name}.language' is required when '{section_name}' is provided.")
+
+    arguments = [
+        "--filter-expression",
+        expression,
+        "--filter-language",
+        language,
+    ]
+
+    if language_version is not None:
+        arguments.extend(["--filter-language-version", language_version])
+
+    if media_type is not None:
+        arguments.extend(["--filter-media-type", media_type])
+
+    return arguments
+
+
+def _get_optional_string(config: dict[str, Any], field_name: str, section_name: str) -> str | None:
+    value = config.get(field_name)
+    if value is None:
+        return None
+
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigError(f"Configuration field '{section_name}.{field_name}' must be a non-empty string.")
+
+    return value.strip()

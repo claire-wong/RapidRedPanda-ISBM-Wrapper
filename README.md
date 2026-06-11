@@ -1,36 +1,173 @@
-﻿# RapidRedPanda-ISBM-Wrapper
-.NET 8 wrapper, production automation CLI, and testing toolkit for RapidRedPanda ISBM Client Adapter.
+# RapidRedPanda-ISBM-Wrapper
+
+RapidRedPanda-ISBM-Wrapper is a .NET 8 wrapper library and machine-friendly JSON CLI for automating ISA-95 ISBM 2.0 publication/subscription and request/response workflows through `RapidRedPanda.ISBM.ClientAdapter`.
+
+The repository is intended for:
+
+- Python applications that need to call ISBM operations through `subprocess`.
+- Shell scripts and automation jobs that need stable JSON output.
+- AI agents and orchestration tools that need predictable command results.
+- .NET developers who want a small wrapper over the RapidRedPanda SDK.
+
+The relationship between the pieces is:
+
+```text
+Python / shell / AI agent
+-> RapidRedPanda.Wrapper.Cli
+-> RapidRedPanda.Wrapper
+-> RapidRedPanda.ISBM.ClientAdapter
+-> ISBM 2.0 server
+```
 
 ## Repository layout
 
-- `src/RapidRedPanda.Wrapper` - core reusable .NET wrapper library over `RapidRedPanda.ISBM.ClientAdapter`.
-- `src/RapidRedPanda.Wrapper.Cli` - production, non-interactive, machine-friendly JSON CLI for Python, AI agents, and automation clients.
-- `samples/csharp/RapidRedPanda.Wrapper.Console` - C# testing/demo console app with interactive publication/subscription workflows.
-- `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json` - template local settings for the C# console sample.
-- `docs/SDK_STUDY.md` - notes on the wrapped SDK and observed ISBM behavior.
-- `tests` - reserved for future test projects.
+- `src/RapidRedPanda.Wrapper` - reusable .NET wrapper library over `RapidRedPanda.ISBM.ClientAdapter`.
+- `src/RapidRedPanda.Wrapper.Cli` - non-interactive JSON CLI for Python, AI agents, and automation clients.
+- `samples/python` - Python standard-library examples that invoke the CLI.
+- `samples/csharp/RapidRedPanda.Wrapper.Console` - C# testing/demo console app with interactive workflows.
+- `docs/SDK_STUDY.md` - research notes on the wrapped SDK and observed publication behavior.
+- `docs/REQUEST_SERVICES_SDK_STUDY.md` - research notes on request/response SDK behavior.
+- `tests` - executable test harness project.
 
-## Build
+## Quickstart from source
+
+Prerequisites:
+
+- .NET 8 SDK
+- Python 3.10+ for the Python samples
+
+Build the solution:
 
 ```powershell
 dotnet restore RapidRedPanda.Wrapper.sln
 dotnet build RapidRedPanda.Wrapper.sln -m:1
 ```
 
-## Tests
-
-The test project is a small executable harness with no third-party test framework dependency, so it can run offline after restore.
+Run the test harness:
 
 ```powershell
 dotnet run --project tests/RapidRedPanda.Wrapper.Tests/RapidRedPanda.Wrapper.Tests.csproj
 ```
 
-## Creating Release Packages
+Run a CLI command from the built Debug DLL:
+
+```powershell
+dotnet .\src\RapidRedPanda.Wrapper.Cli\bin\Debug\net8.0\RapidRedPanda.Wrapper.Cli.dll open-subscription --host http://your-server/isbm/2.0 --channel /YourOrganization/Publication --topic YourPublicationTopic --user your-username --password your-password
+```
+
+## Python samples
+
+Python samples use only the Python standard library. They invoke `RapidRedPanda.Wrapper.Cli` through `subprocess`; they do not load the .NET wrapper library directly.
+
+See `samples/python/README.md` for examples covering:
+
+- Consumer Publication
+- Provider Publication
+- Consumer Request
+- Provider Request
+
+Create local Python sample config from the template:
+
+```powershell
+Copy-Item samples/python/sample_config.example.json samples/python/sample_config.json
+```
+
+Then update `samples/python/sample_config.json` for your ISBM environment.
+
+## CLI command overview
+
+The production CLI writes JSON to standard output and exits with:
+
+- `0` for successful wrapper operations.
+- `1` for CLI execution failures.
+- `2` for invalid arguments.
+- `3` for valid wrapper responses that indicate operation failure.
+
+Consumer publication commands:
+
+- `open-subscription --host <url> --channel <channel> --topic <topic> --user <user> --password <password> [--raw]`
+- `read-publication --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+- `remove-publication --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+- `close-subscription --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+
+Provider publication commands:
+
+- `open-publication-session --host <url> --channel <channel> --user <user> --password <password> [--topic <topic>] [--raw]`
+- `post-publication --host <url> --session-id <id> --topic <topic> --content <json> --user <user> --password <password> [--media-type application/json] [--expiry <value>] [--raw]`
+- `expire-publication --host <url> --session-id <id> --message-id <id> --user <user> --password <password> [--raw]`
+- `close-publication-session --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+
+Consumer request commands:
+
+- `open-request-session --host <url> --channel <channel> --user <user> --password <password> [--topic <topic>] [--raw]`
+- `post-request --host <url> --session-id <id> --topic <topic> --content <json> --user <user> --password <password> [--media-type application/json] [--expiry <value>] [--raw]`
+- `read-response --host <url> --session-id <id> --request-message-id <id> --user <user> --password <password> [--raw]`
+- `remove-response --host <url> --session-id <id> --request-message-id <id> --user <user> --password <password> [--raw]`
+- `expire-request --host <url> --session-id <id> --message-id <id> --user <user> --password <password> [--raw]`
+- `close-request-session --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+
+Provider request commands:
+
+- `open-provider-request-session --host <url> --channel <channel> --topic <topic> --user <user> --password <password> [--raw]`
+- `read-request --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+- `post-response --host <url> --session-id <id> --request-message-id <id> --content <json> --user <user> --password <password> [--media-type application/json] [--raw]`
+- `remove-request --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+- `close-provider-request-session --host <url> --session-id <id> --user <user> --password <password> [--raw]`
+
+`--media-type` is accepted on post commands for compatibility with existing examples. The current wrapper passes message content through the installed SDK's JSON message-content behavior.
+
+## JSON response format
+
+Every CLI command writes a JSON response with this envelope:
+
+```json
+{
+  "success": true,
+  "command": "open-subscription",
+  "timestampUtc": "2026-06-04T12:00:00.0000000Z",
+  "data": {
+    "statusCode": 201,
+    "sessionId": "example-session-id"
+  },
+  "raw": null,
+  "fault": null,
+  "transportFault": null
+}
+```
+
+On success, `data` contains operation-specific fields such as `sessionId`, `messageId`, `messageContent`, `topics`, `closed`, `removed`, or `expired`.
+
+On an ISBM/HTTP operation failure, `success` is `false` and `fault` contains:
+
+- `code`
+- `message`
+- `details`
+
+On validation, transport, or CLI execution failures, `success` is `false` and `transportFault` contains:
+
+- `type`
+- `message`
+- `details`
+
+Use `--raw` to include the SDK raw response body when the operation returns one. Credentials and authorization headers are not included in wrapper JSON responses.
+
+## Local configuration and security
+
+Use example files as templates:
+
+- `samples/python/sample_config.example.json`
+- `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json`
+
+Local files such as `samples/python/sample_config.json` and `appsettings.Development.json` can contain credentials and must not be committed. They are ignored by `.gitignore`.
+
+Passing `--password` on a command line can expose the value through shell history or process inspection. Prefer local config files or your platform's secret-management tooling for shared or production environments.
+
+## Creating release packages
 
 Create self-contained release assets for Windows x64, Linux x64, and Linux ARM64:
 
 ```powershell
-.\scripts\release.ps1 0.3.3
+.\scripts\release.ps1 0.3.4
 ```
 
 Generated release assets are placed in:
@@ -39,51 +176,36 @@ Generated release assets are placed in:
 artifacts/
 ```
 
-The generated `.zip` and `.tar.gz` files can be uploaded directly to a GitHub Release.
+The generated `.zip` and `.tar.gz` files can be uploaded to a GitHub Release.
 
-Each release package includes:
+Each package extracts to a versioned folder containing:
 
-- Self-contained CLI binaries
-- Python examples
-- Sample configuration templates
-- Documentation
+- The self-contained `RapidRedPanda.Wrapper.Cli` executable.
+- Root documentation: `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, and `SECURITY.md`.
+- Python samples and `sample_config.example.json` under `samples/python`.
+- The published C# console sample under `samples/csharp-console`.
 
-## Local configuration
+## Troubleshooting
 
-The console app can load `appsettings.json` or `appsettings.Development.json` from the app base directory, current directory, or `samples/csharp/RapidRedPanda.Wrapper.Console`.
-Use `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json` as the template for local development settings:
+- If the CLI DLL is missing, run `dotnet build RapidRedPanda.Wrapper.sln -m:1`.
+- If Python samples cannot find the CLI, check the locations listed in `samples/python/README.md`.
+- If a command returns `transportFault`, check the ISBM host URL, DNS, network access, credentials, and TLS/certificate configuration.
+- If a command returns `fault`, the ISBM server or SDK returned an unexpected status or fault body.
+- If `raw` is `null`, either `--raw` was not used or the SDK response body was empty.
 
-1. Copy `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json`.
-2. Rename the copy to `samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.Development.json`.
-3. Edit `Host`, `User`, `Password`, and any channel/topic values for your own ISBM environment.
-4. Do not commit `appsettings.Development.json`; it is ignored by Git.
+## License
 
-## Python samples
+License selection is pending owner decision. Add a `LICENSE` file before publishing or distributing release assets broadly.
 
-Python integration uses this architecture:
-
-```text
-Python
--> subprocess
--> RapidRedPanda.Wrapper.Cli
--> RapidRedPanda.Wrapper
--> RapidRedPanda SDK / ISBM
-```
-
-Python does not directly load the wrapper class library or use the C# testing/demo console. See `samples/python/README.md` for examples covering:
-
-- Consumer Publication
-- Provider Publication
-- Consumer Request
-- Provider Request
-
-## Post Publication Expiry
+## Post publication expiry
 
 `post-publication` accepts an optional `--expiry <value>` parameter. The value is passed through to the SDK `PostPublicationOptions.Expiry` field.
 
-## Subscription Filter Expressions
+`post-request` also accepts optional `--expiry <value>` and passes it through to the SDK `PostRequestOptions.Expiry` field.
 
-`open-subscription` accepts optional JSONPath filter flags. The wrapper models filter expressions as a collection because the ISBM `filterExpressions` field is an array, and maps them to the SDK `OpenSubscriptionSessionOptions.FilterExpressions` model:
+## Subscription filter expressions
+
+The C# testing/demo console and production JSON CLI support optional filter flags for `open-subscription` and `open-provider-request-session`.
 
 ```powershell
 dotnet run --project samples/csharp/RapidRedPanda.Wrapper.Console -- open-subscription --host http://your-isbm-server/isbm/2.0 --channel /YourOrganization/Publication --topic YourPublicationTopic --user your-username --password your-password --filter-media-type application/json --filter-language JSONPath --filter-language-version com.jayway.jsonpath:json-path:2.4.0 --filter-expression "$['LoremIpsum'][?(@.field == 'SomeText')]"
@@ -91,28 +213,9 @@ dotnet run --project samples/csharp/RapidRedPanda.Wrapper.Console -- open-subscr
 
 The installed `RapidRedPanda.ISBM.ClientAdapter` package exposes applicable media types and expression strings for subscription filters. It does not expose a namespace collection on `FilterExpression` in version `2.0.2.4`, so namespace values are returned as wrapper validation failures.
 
-The interactive Consumer Publication Console can send multiple filter expressions when opening a subscription session:
-
-```text
-Use filter expressions? [y/N]: y
-Filter Expression #1
-Applicable media types, comma-separated [application/json]:
-Filter language [JSONPath]:
-Filter language version [com.jayway.jsonpath:json-path:2.4.0]:
-Filter expression: $['LoremIpsum'][?(@.field == 'SomeText')]
-Add another filter expression? [y/N]: y
-Filter Expression #2
-Applicable media types, comma-separated [application/json]:
-Filter language [JSONPath]:
-Filter language version [com.jayway.jsonpath:json-path:2.4.0]:
-Filter expression: $['LoremIpsum'][?(@.priority == 'High')]
-Add another filter expression? [y/N]: n
-```
-
 Filter expressions are supported only where the current SDK exposes `FilterExpressions` options:
 
 - Consumer Publication `OpenSubscriptionSession`
 - Provider Request `OpenProviderRequestSession`
 
 Filter expressions are not supported for Provider Publication or Consumer Request session operations.
-

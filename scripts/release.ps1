@@ -13,9 +13,10 @@ $artifactsRoot = Join-Path $repoRoot "artifacts"
 $stagingRoot = Join-Path $artifactsRoot "_staging"
 $packageName = "RapidRedPanda-ISBM-Wrapper"
 $cliProject = Join-Path $repoRoot "src/RapidRedPanda.Wrapper.Cli/RapidRedPanda.Wrapper.Cli.csproj"
+$consoleProject = Join-Path $repoRoot "samples/csharp/RapidRedPanda.Wrapper.Console/RapidRedPanda.Wrapper.Console.csproj"
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    throw "Version parameter is required. Usage: .\scripts\release.ps1 0.3.3"
+    throw "Version parameter is required. Usage: .\scripts\release.ps1 0.3.4"
 }
 
 function Remove-DirectoryIfExists {
@@ -44,20 +45,36 @@ function Invoke-NativeCommand {
     }
 }
 
-function Add-ReleaseContent {
+function Copy-RootDocumentation {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$PublishDirectory
+        [string]$PackageDirectory
     )
 
-    $readmePath = Join-Path $repoRoot "README.md"
-    if (Test-Path -LiteralPath $readmePath) {
-        Copy-Item -LiteralPath $readmePath -Destination $PublishDirectory -Force
+    $documentationFiles = @(
+        "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md"
+    )
+
+    foreach ($documentationFile in $documentationFiles) {
+        $sourcePath = Join-Path $repoRoot $documentationFile
+        if (Test-Path -LiteralPath $sourcePath) {
+            Copy-Item -LiteralPath $sourcePath -Destination $PackageDirectory -Force
+        }
     }
+}
+
+function Copy-PythonSamples {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageDirectory
+    )
 
     $pythonSamplesPath = Join-Path $repoRoot "samples/python"
     if (Test-Path -LiteralPath $pythonSamplesPath) {
-        $samplesRoot = Join-Path $PublishDirectory "samples"
+        $samplesRoot = Join-Path $PackageDirectory "samples"
         $pythonSamplesDestination = Join-Path $samplesRoot "python"
         New-Item -ItemType Directory -Force -Path $samplesRoot | Out-Null
         Copy-Item -LiteralPath $pythonSamplesPath -Destination $samplesRoot -Recurse -Force
@@ -66,6 +83,41 @@ function Add-ReleaseContent {
         if (Test-Path -LiteralPath $localPythonConfig) {
             Remove-Item -LiteralPath $localPythonConfig -Force
         }
+
+        $pythonCache = Join-Path $pythonSamplesDestination "__pycache__"
+        if (Test-Path -LiteralPath $pythonCache) {
+            Remove-Item -LiteralPath $pythonCache -Recurse -Force
+        }
+    }
+}
+
+function Copy-CSharpConsoleSample {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ConsolePublishDirectory
+    )
+
+    $samplesRoot = Join-Path $PackageDirectory "samples"
+    $consoleDestination = Join-Path $samplesRoot "csharp-console"
+    New-Item -ItemType Directory -Force -Path $consoleDestination | Out-Null
+    Copy-Item -Path (Join-Path $ConsolePublishDirectory "*") -Destination $consoleDestination -Recurse -Force
+
+    $localConsoleConfig = Join-Path $consoleDestination "appsettings.Development.json"
+    if (Test-Path -LiteralPath $localConsoleConfig) {
+        Remove-Item -LiteralPath $localConsoleConfig -Force
+    }
+
+    $consoleExampleConfig = Join-Path $repoRoot "samples/csharp/RapidRedPanda.Wrapper.Console/appsettings.example.json"
+    if (Test-Path -LiteralPath $consoleExampleConfig) {
+        Copy-Item -LiteralPath $consoleExampleConfig -Destination $consoleDestination -Force
+    }
+
+    $consoleReadme = Join-Path $repoRoot "samples/csharp/RapidRedPanda.Wrapper.Console/README.md"
+    if (Test-Path -LiteralPath $consoleReadme) {
+        Copy-Item -LiteralPath $consoleReadme -Destination $consoleDestination -Force
     }
 }
 
@@ -177,15 +229,24 @@ function Set-TarGzEntryMode {
 function Copy-PublishOutput {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Rid
+        [string]$Rid,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CliPublishDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ConsolePublishDirectory
     )
 
-    $publishDir = Join-Path $publishRoot $Rid
     $stageDir = Join-Path $stagingRoot $Rid
-    $packageDir = Join-Path $stageDir $packageName
+    $packageDirName = "$packageName-v$Version-$Rid"
+    $packageDir = Join-Path $stageDir $packageDirName
 
     New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
-    Copy-Item -Path (Join-Path $publishDir "*") -Destination $packageDir -Recurse -Force
+    Copy-Item -Path (Join-Path $CliPublishDirectory "*") -Destination $packageDir -Recurse -Force
+    Copy-RootDocumentation -PackageDirectory $packageDir
+    Copy-PythonSamples -PackageDirectory $packageDir
+    Copy-CSharpConsoleSample -PackageDirectory $packageDir -ConsolePublishDirectory $ConsolePublishDirectory
 
     return $stageDir
 }
@@ -204,7 +265,10 @@ Invoke-NativeCommand -FilePath "dotnet" -Arguments @("build", "-c", "Release")
 $runtimeIds = @("win-x64", "linux-x64", "linux-arm64")
 
 foreach ($rid in $runtimeIds) {
-    $outputDir = Join-Path $publishRoot $rid
+    $runtimePublishRoot = Join-Path $publishRoot $rid
+    $cliOutputDir = Join-Path $runtimePublishRoot "cli"
+    $consoleOutputDir = Join-Path $runtimePublishRoot "csharp-console"
+
     Invoke-NativeCommand -FilePath "dotnet" -Arguments @(
         "publish",
         $cliProject,
@@ -215,25 +279,47 @@ foreach ($rid in $runtimeIds) {
         "--self-contained",
         "true",
         "-o",
-        $outputDir
+        $cliOutputDir
     )
 
-    Add-ReleaseContent -PublishDirectory $outputDir
+    Invoke-NativeCommand -FilePath "dotnet" -Arguments @(
+        "publish",
+        $consoleProject,
+        "-c",
+        "Release",
+        "-r",
+        $rid,
+        "--self-contained",
+        "true",
+        "-o",
+        $consoleOutputDir
+    )
+
+    $localConsoleConfig = Join-Path $consoleOutputDir "appsettings.Development.json"
+    if (Test-Path -LiteralPath $localConsoleConfig) {
+        Remove-Item -LiteralPath $localConsoleConfig -Force
+    }
 }
 
-$winStageDir = Copy-PublishOutput -Rid "win-x64"
-$linuxX64StageDir = Copy-PublishOutput -Rid "linux-x64"
-$linuxArm64StageDir = Copy-PublishOutput -Rid "linux-arm64"
+$winStageDir = Copy-PublishOutput -Rid "win-x64" -CliPublishDirectory (Join-Path $publishRoot "win-x64/cli") -ConsolePublishDirectory (Join-Path $publishRoot "win-x64/csharp-console")
+$linuxX64StageDir = Copy-PublishOutput -Rid "linux-x64" -CliPublishDirectory (Join-Path $publishRoot "linux-x64/cli") -ConsolePublishDirectory (Join-Path $publishRoot "linux-x64/csharp-console")
+$linuxArm64StageDir = Copy-PublishOutput -Rid "linux-arm64" -CliPublishDirectory (Join-Path $publishRoot "linux-arm64/cli") -ConsolePublishDirectory (Join-Path $publishRoot "linux-arm64/csharp-console")
 
 $winPackage = Join-Path $artifactsRoot "$packageName-v$Version-win-x64.zip"
 $linuxX64Package = Join-Path $artifactsRoot "$packageName-v$Version-linux-x64.tar.gz"
 $linuxArm64Package = Join-Path $artifactsRoot "$packageName-v$Version-linux-arm64.tar.gz"
 
-Compress-Archive -Path (Join-Path $winStageDir $packageName) -DestinationPath $winPackage -Force
-Invoke-NativeCommand -FilePath "tar" -Arguments @("-czf", $linuxX64Package, "-C", $linuxX64StageDir, $packageName)
-Invoke-NativeCommand -FilePath "tar" -Arguments @("-czf", $linuxArm64Package, "-C", $linuxArm64StageDir, $packageName)
-Set-TarGzEntryMode -ArchivePath $linuxX64Package -EntryName "$packageName/RapidRedPanda.Wrapper.Cli" -Mode "755"
-Set-TarGzEntryMode -ArchivePath $linuxArm64Package -EntryName "$packageName/RapidRedPanda.Wrapper.Cli" -Mode "755"
+$winPackageRoot = "$packageName-v$Version-win-x64"
+$linuxX64PackageRoot = "$packageName-v$Version-linux-x64"
+$linuxArm64PackageRoot = "$packageName-v$Version-linux-arm64"
+
+Compress-Archive -Path (Join-Path $winStageDir $winPackageRoot) -DestinationPath $winPackage -Force
+Invoke-NativeCommand -FilePath "tar" -Arguments @("-czf", $linuxX64Package, "-C", $linuxX64StageDir, $linuxX64PackageRoot)
+Invoke-NativeCommand -FilePath "tar" -Arguments @("-czf", $linuxArm64Package, "-C", $linuxArm64StageDir, $linuxArm64PackageRoot)
+Set-TarGzEntryMode -ArchivePath $linuxX64Package -EntryName "$linuxX64PackageRoot/RapidRedPanda.Wrapper.Cli" -Mode "755"
+Set-TarGzEntryMode -ArchivePath $linuxArm64Package -EntryName "$linuxArm64PackageRoot/RapidRedPanda.Wrapper.Cli" -Mode "755"
+Set-TarGzEntryMode -ArchivePath $linuxX64Package -EntryName "$linuxX64PackageRoot/samples/csharp-console/RapidRedPanda.Wrapper.Console" -Mode "755"
+Set-TarGzEntryMode -ArchivePath $linuxArm64Package -EntryName "$linuxArm64PackageRoot/samples/csharp-console/RapidRedPanda.Wrapper.Console" -Mode "755"
 
 Remove-DirectoryIfExists -Path $stagingRoot
 

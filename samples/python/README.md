@@ -35,6 +35,35 @@ Copy-Item samples/python/sample_config.example.json samples/python/sample_config
 
 The config file contains the host, credentials, and publication/request channels/topics used by the sample workflows. `sample_config.json` is ignored by Git so local credentials are not committed.
 
+## Optional FilterExpression Support
+
+FilterExpression can be used when opening a subscription session or a provider request session to ask ISBM for only messages matching a filter supported by your server.
+
+Optional filter expression examples are included in `sample_config.example.json` using underscore-prefixed property names. These settings are ignored by default.
+
+To enable it for Sample 01, rename `_subscriptionFilterExpression` to `subscriptionFilterExpression` in `sample_config.json`:
+
+```json
+{
+  "subscriptionFilterExpression": {
+    "expression": "$.DataArea.Show.Measurement[?(@.value > 100)]",
+    "language": "JsonPath",
+    "languageVersion": "1.0",
+    "mediaType": "application/json"
+  }
+}
+```
+
+To enable it for Sample 15, rename `_providerRequestFilterExpression` to `providerRequestFilterExpression`.
+
+Update the expression as needed for your message payload. To disable the filter again, add the leading underscore back to the property name. When an active filter section exists, `expression` and `language` are required. `languageVersion` and `mediaType` are optional. If the active section is omitted, the samples do not send any filter arguments.
+
+The Python samples automatically pass the filter options to the CLI. The generated CLI arguments look like this:
+
+```powershell
+--filter-expression "$.DataArea.Show.Measurement[?(@.value > 100)]" --filter-language JsonPath --filter-language-version 1.0 --filter-media-type application/json
+```
+
 ## CLI Discovery
 
 The Python samples automatically locate `RapidRedPanda.Wrapper.Cli` and do not need to be edited when moving between Windows, Linux, macOS, and source checkouts.

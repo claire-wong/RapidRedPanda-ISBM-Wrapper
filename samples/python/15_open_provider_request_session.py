@@ -17,7 +17,7 @@ import json
 import subprocess
 import sys
 from cli_locator import CliNotFoundError, get_cli_command_prefix, print_cli_not_found
-from config_loader import ConfigError, load_config
+from config_loader import ConfigError, build_filter_arguments, load_config
 
 
 
@@ -27,9 +27,9 @@ EXIT_INVALID_RESPONSE = 2
 EXIT_OPEN_PROVIDER_REQUEST_SESSION_FAILED = 3
 
 
-def build_command(cli_command_prefix: list[str], config: dict[str, str]) -> list[str]:
+def build_command(cli_command_prefix: list[str], config: dict[str, object]) -> list[str]:
     """Build the dotnet CLI command-line arguments for open-provider-request-session."""
-    return cli_command_prefix + [
+    command = cli_command_prefix + [
         "open-provider-request-session",
         "--host",
         config["host"],
@@ -42,6 +42,8 @@ def build_command(cli_command_prefix: list[str], config: dict[str, str]) -> list
         "--password",
         config["password"],
     ]
+    command.extend(build_filter_arguments(config, "providerRequestFilterExpression"))
+    return command
 
 
 def print_failure_details(response: dict[str, object]) -> None:
@@ -54,7 +56,7 @@ def print_failure_details(response: dict[str, object]) -> None:
     print(json.dumps(fault, indent=2))
 
 
-def run_cli(cli_command_prefix: list[str], config: dict[str, str]) -> tuple[int, str, str]:
+def run_cli(cli_command_prefix: list[str], config: dict[str, object]) -> tuple[int, str, str]:
     """Execute the CLI and return process code, stdout, and stderr."""
     try:
         result = subprocess.run(
