@@ -16,7 +16,7 @@ $cliProject = Join-Path $repoRoot "src/RapidRedPanda.Wrapper.Cli/RapidRedPanda.W
 $consoleProject = Join-Path $repoRoot "samples/csharp/RapidRedPanda.Wrapper.Console/RapidRedPanda.Wrapper.Console.csproj"
 
 if ([string]::IsNullOrWhiteSpace($Version)) {
-    throw "Version parameter is required. Usage: .\scripts\release.ps1 0.3.4"
+    throw "Version parameter is required. Usage: .\scripts\release.ps1 0.3.5"
 }
 
 function Remove-DirectoryIfExists {

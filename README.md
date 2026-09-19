@@ -167,7 +167,7 @@ Passing `--password` on a command line can expose the value through shell histor
 Create self-contained release assets for Windows x64, Linux x64, and Linux ARM64:
 
 ```powershell
-.\scripts\release.ps1 0.3.4
+.\scripts\release.ps1 0.3.5
 ```
 
 Generated release assets are placed in:
@@ -211,7 +211,7 @@ The C# testing/demo console and production JSON CLI support optional filter flag
 dotnet run --project samples/csharp/RapidRedPanda.Wrapper.Console -- open-subscription --host http://your-isbm-server/isbm/2.0 --channel /YourOrganization/Publication --topic YourPublicationTopic --user your-username --password your-password --filter-media-type application/json --filter-language JSONPath --filter-language-version com.jayway.jsonpath:json-path:2.4.0 --filter-expression "$['LoremIpsum'][?(@.field == 'SomeText')]"
 ```
 
-The installed `RapidRedPanda.ISBM.ClientAdapter` package exposes applicable media types and expression strings for subscription filters. It does not expose a namespace collection on `FilterExpression` in version `2.0.2.4`, so namespace values are returned as wrapper validation failures.
+The installed `RapidRedPanda.ISBM.ClientAdapter` 2.2.0 package exposes applicable media types, expression strings, and namespaces for subscription filters. The wrapper passes applicable media types and namespaces through where the SDK exposes `FilterExpressions` options.
 
 Filter expressions are supported only where the current SDK exposes `FilterExpressions` options:
 
