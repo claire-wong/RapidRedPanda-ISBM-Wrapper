@@ -6,7 +6,7 @@ Post a publication using an existing provider publication session.
 
 This sample demonstrates:
 - Executing the wrapper CLI from Python
-- Posting a JSON publication
+- Posting a native JSON publication
 - Parsing wrapper JSON responses
 - Retrieving the ISBM message ID
 
@@ -19,7 +19,6 @@ import sys
 from cli_locator import CliNotFoundError, get_cli_command_prefix, print_cli_not_found
 from config_loader import ConfigError, load_config
 
-MEDIA_TYPE = "application/json"
 PAYLOAD = {
     "messageType": "SyncMeasurements",
     "measurements": [
@@ -49,8 +48,6 @@ def build_command(cli_command_prefix: list[str], config: dict[str, str], session
         session_id,
         "--topic",
         config["publicationTopic"],
-        "--media-type",
-        MEDIA_TYPE,
         "--content",
         json.dumps(PAYLOAD, separators=(",", ":")),
         "--user",

@@ -1,5 +1,6 @@
 using RapidRedPanda.ISBM.ClientAdapter;
 using RapidRedPanda.ISBM.ClientAdapter.EndpointOptions;
+using RapidRedPanda.ISBM.ClientAdapter.ResponseType;
 using RapidRedPanda.Wrapper.Publication;
 using RapidRedPanda.Wrapper.Responses;
 
@@ -12,6 +13,18 @@ public sealed class ProviderRequestWrapper
     private const string PostResponseCommand = "post-response";
     private const string RemoveRequestCommand = "remove-request";
     private const string CloseProviderRequestSessionCommand = "close-provider-request-session";
+
+    private readonly Func<string, string, IProviderRequestService> _createService;
+
+    public ProviderRequestWrapper()
+        : this(CreateService)
+    {
+    }
+
+    internal ProviderRequestWrapper(Func<string, string, IProviderRequestService> createService)
+    {
+        _createService = createService;
+    }
 
     public WrapperResponse OpenProviderRequestSession(
         string host,
@@ -57,7 +70,7 @@ public sealed class ProviderRequestWrapper
 
         try
         {
-            var service = CreateService(user, password);
+            var service = _createService(user, password);
             var response = activeFilterExpressions is null || activeFilterExpressions.Count == 0
                 ? service.OpenProviderRequestSession(host, channel, topic)
                 : service.OpenProviderRequestSession(host, channel, topic, CreateOpenProviderRequestSessionOptions(activeFilterExpressions));
@@ -89,15 +102,18 @@ public sealed class ProviderRequestWrapper
         {
             FilterExpressions = filterExpressions.Select(filterExpression => new FilterExpression
             {
-                ApplicableMediaTypes = NormalizeApplicableMediaTypes(filterExpression.ApplicableMediaTypes)
-                    .Select(mediaType => new ApplicableMediaType { MediaType = mediaType })
-                    .ToList(),
+                ApplicableMediaTypes = NormalizeApplicableMediaTypes(filterExpression.ApplicableMediaTypes),
                 ExpressionString = new ExpressionString
                 {
                     Expression = filterExpression.Expression?.Trim() ?? "",
                     Language = filterExpression.Language?.Trim() ?? "",
                     LanguageVersion = filterExpression.LanguageVersion?.Trim() ?? ""
-                }
+                },
+                Namespaces = filterExpression.Namespaces.Select(filterNamespace => new FilterExpressionNamespace
+                {
+                    Prefix = filterNamespace.Prefix ?? "",
+                    Name = filterNamespace.Name
+                }).ToList()
             }).ToList()
         };
     }
@@ -144,10 +160,6 @@ public sealed class ProviderRequestWrapper
                 }
             }
 
-            if (filterExpression.Namespaces.Count > 0)
-            {
-                return "Filter namespaces are not supported by RapidRedPanda.ISBM.ClientAdapter 2.0.2.4 OpenProviderRequestSessionOptions.";
-            }
         }
 
         return null;
@@ -173,7 +185,7 @@ public sealed class ProviderRequestWrapper
 
         try
         {
-            var service = CreateService(user, password);
+            var service = _createService(user, password);
             var response = service.ReadRequest(host, sessionId);
 
             if (response.StatusCode != 200)
@@ -206,6 +218,19 @@ public sealed class ProviderRequestWrapper
         string password,
         bool includeRaw = false)
     {
+        return PostResponse(host, sessionId, requestMessageId, responseContent, user, password, includeRaw, mediaType: null);
+    }
+
+    public WrapperResponse PostResponse(
+        string host,
+        string sessionId,
+        string requestMessageId,
+        string responseContent,
+        string user,
+        string password,
+        bool includeRaw,
+        string? mediaType)
+    {
         var missing = ValidateRequired(
             ("host", host),
             ("session-id", sessionId),
@@ -221,8 +246,97 @@ public sealed class ProviderRequestWrapper
 
         try
         {
-            var service = CreateService(user, password);
-            var response = service.PostResponse(host, sessionId, requestMessageId, responseContent);
+            var service = _createService(user, password);
+            var normalizedMediaType = NormalizeOptionalMediaType(mediaType);
+            var response = normalizedMediaType is null
+                ? service.PostResponse(host, sessionId, requestMessageId, responseContent)
+                : service.PostResponse(
+                    host,
+                    sessionId,
+                    requestMessageId,
+                    responseContent,
+                    new PostResponseOptions { MediaType = normalizedMediaType });
+
+            if (response.StatusCode != 201)
+            {
+                return WrapperResponse.FaultResponse(PostResponseCommand, response.StatusCode, response.ISBMHTTPResponse, includeRaw);
+            }
+
+            return WrapperResponse.SuccessResponse(
+                PostResponseCommand,
+                new
+                {
+                    statusCode = response.StatusCode,
+                    requestMessageId,
+                    responseMessageId = response.MessageID
+                },
+                includeRaw ? response.ISBMHTTPResponse : null);
+        }
+        catch (Exception exception)
+        {
+            return WrapperResponse.ExceptionFailure(PostResponseCommand, exception);
+        }
+    }
+
+    public Task<WrapperResponse> PostResponseAsync(
+        string host,
+        string sessionId,
+        string requestMessageId,
+        string responseContent,
+        string user,
+        string password,
+        bool includeRaw = false,
+        CancellationToken cancellationToken = default)
+    {
+        return PostResponseAsync(
+            host,
+            sessionId,
+            requestMessageId,
+            responseContent,
+            user,
+            password,
+            includeRaw,
+            mediaType: null,
+            cancellationToken);
+    }
+
+    public async Task<WrapperResponse> PostResponseAsync(
+        string host,
+        string sessionId,
+        string requestMessageId,
+        string responseContent,
+        string user,
+        string password,
+        bool includeRaw,
+        string? mediaType,
+        CancellationToken cancellationToken = default)
+    {
+        var missing = ValidateRequired(
+            ("host", host),
+            ("session-id", sessionId),
+            ("request-message-id", requestMessageId),
+            ("response", responseContent),
+            ("user", user),
+            ("password", password));
+
+        if (missing is not null)
+        {
+            return WrapperResponse.ValidationFailure(PostResponseCommand, $"Missing required parameter: --{missing}");
+        }
+
+        try
+        {
+            var service = _createService(user, password);
+            var normalizedMediaType = NormalizeOptionalMediaType(mediaType);
+            var response = normalizedMediaType is null
+                ? await service.PostResponseAsync(host, sessionId, requestMessageId, responseContent, cancellationToken)
+                : await service.PostResponseAsync(
+                    host,
+                    sessionId,
+                    requestMessageId,
+                    responseContent,
+                    new PostResponseOptions { MediaType = normalizedMediaType },
+                    cancellationToken);
 
             if (response.StatusCode != 201)
             {
@@ -265,7 +379,7 @@ public sealed class ProviderRequestWrapper
 
         try
         {
-            var service = CreateService(user, password);
+            var service = _createService(user, password);
             var response = service.RemoveRequest(host, sessionId);
 
             if (response.StatusCode != 204)
@@ -308,7 +422,7 @@ public sealed class ProviderRequestWrapper
 
         try
         {
-            var service = CreateService(user, password);
+            var service = _createService(user, password);
             var response = service.CloseProviderRequestSession(host, sessionId);
 
             if (response.StatusCode != 204)
@@ -331,12 +445,17 @@ public sealed class ProviderRequestWrapper
         }
     }
 
-    private static ProviderRequestService CreateService(string user, string password)
+    private static IProviderRequestService CreateService(string user, string password)
     {
         var service = new ProviderRequestService();
         service.Credential.Username = user;
         service.Credential.Password = password;
-        return service;
+        return new ProviderRequestServiceAdapter(service);
+    }
+
+    private static string? NormalizeOptionalMediaType(string? mediaType)
+    {
+        return string.IsNullOrWhiteSpace(mediaType) ? null : mediaType;
     }
 
     private static string? ValidateRequired(params (string Name, string? Value)[] values)
@@ -350,5 +469,114 @@ public sealed class ProviderRequestWrapper
         }
 
         return null;
+    }
+}
+
+internal interface IProviderRequestService
+{
+    OpenProviderRequestSessionResponse OpenProviderRequestSession(string hostAddress, string channelId, string topic);
+
+    OpenProviderRequestSessionResponse OpenProviderRequestSession(
+        string hostAddress,
+        string channelId,
+        string topic,
+        OpenProviderRequestSessionOptions openProviderRequestSessionOptions);
+
+    ReadRequestResponse ReadRequest(string hostAddress, string sessionId);
+
+    PostResponseResponse PostResponse(string hostAddress, string sessionId, string requestMessageId, string bodMessage);
+
+    PostResponseResponse PostResponse(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        PostResponseOptions postResponseOptions);
+
+    Task<PostResponseResponse> PostResponseAsync(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        CancellationToken cancellationToken = default);
+
+    Task<PostResponseResponse> PostResponseAsync(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        PostResponseOptions postResponseOptions,
+        CancellationToken cancellationToken = default);
+
+    RemoveRequestResponse RemoveRequest(string hostAddress, string sessionId);
+
+    CloseProviderRequestSessionResponse CloseProviderRequestSession(string hostAddress, string sessionId);
+}
+
+internal sealed class ProviderRequestServiceAdapter(ProviderRequestService service) : IProviderRequestService
+{
+    public OpenProviderRequestSessionResponse OpenProviderRequestSession(string hostAddress, string channelId, string topic)
+    {
+        return service.OpenProviderRequestSession(hostAddress, channelId, topic);
+    }
+
+    public OpenProviderRequestSessionResponse OpenProviderRequestSession(
+        string hostAddress,
+        string channelId,
+        string topic,
+        OpenProviderRequestSessionOptions openProviderRequestSessionOptions)
+    {
+        return service.OpenProviderRequestSession(hostAddress, channelId, topic, openProviderRequestSessionOptions);
+    }
+
+    public ReadRequestResponse ReadRequest(string hostAddress, string sessionId)
+    {
+        return service.ReadRequest(hostAddress, sessionId);
+    }
+
+    public PostResponseResponse PostResponse(string hostAddress, string sessionId, string requestMessageId, string bodMessage)
+    {
+        return service.PostResponse(hostAddress, sessionId, requestMessageId, bodMessage);
+    }
+
+    public PostResponseResponse PostResponse(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        PostResponseOptions postResponseOptions)
+    {
+        return service.PostResponse(hostAddress, sessionId, requestMessageId, bodMessage, postResponseOptions);
+    }
+
+    public Task<PostResponseResponse> PostResponseAsync(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        CancellationToken cancellationToken = default)
+    {
+        return service.PostResponseAsync(hostAddress, sessionId, requestMessageId, bodMessage, cancellationToken);
+    }
+
+    public Task<PostResponseResponse> PostResponseAsync(
+        string hostAddress,
+        string sessionId,
+        string requestMessageId,
+        string bodMessage,
+        PostResponseOptions postResponseOptions,
+        CancellationToken cancellationToken = default)
+    {
+        return service.PostResponseAsync(hostAddress, sessionId, requestMessageId, bodMessage, postResponseOptions, cancellationToken);
+    }
+
+    public RemoveRequestResponse RemoveRequest(string hostAddress, string sessionId)
+    {
+        return service.RemoveRequest(hostAddress, sessionId);
+    }
+
+    public CloseProviderRequestSessionResponse CloseProviderRequestSession(string hostAddress, string sessionId)
+    {
+        return service.CloseProviderRequestSession(hostAddress, sessionId);
     }
 }

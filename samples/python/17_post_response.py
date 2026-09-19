@@ -6,7 +6,7 @@ Post a response for a request.
 
 This sample demonstrates:
 - Executing the wrapper CLI from Python
-- Posting a response message
+- Posting a native JSON response message
 - Parsing wrapper JSON responses
 - Retrieving the response Message ID
 
@@ -39,8 +39,6 @@ def build_command(cli_command_prefix: list[str], config: dict[str, str], session
         session_id,
         "--request-message-id",
         request_message_id,
-        "--media-type",
-        "application/json",
         "--content",
         json.dumps(PAYLOAD, separators=(",", ":")),
         "--user",

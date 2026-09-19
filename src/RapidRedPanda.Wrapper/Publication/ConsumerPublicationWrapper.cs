@@ -86,15 +86,18 @@ public sealed class ConsumerPublicationWrapper
         {
             FilterExpressions = filterExpressions.Select(filterExpression => new FilterExpression
             {
-                ApplicableMediaTypes = NormalizeApplicableMediaTypes(filterExpression.ApplicableMediaTypes)
-                    .Select(mediaType => new ApplicableMediaType { MediaType = mediaType })
-                    .ToList(),
+                ApplicableMediaTypes = NormalizeApplicableMediaTypes(filterExpression.ApplicableMediaTypes),
                 ExpressionString = new ExpressionString
                 {
                     Expression = filterExpression.Expression?.Trim() ?? "",
                     Language = filterExpression.Language?.Trim() ?? "",
                     LanguageVersion = filterExpression.LanguageVersion?.Trim() ?? ""
-                }
+                },
+                Namespaces = filterExpression.Namespaces.Select(filterNamespace => new FilterExpressionNamespace
+                {
+                    Prefix = filterNamespace.Prefix ?? "",
+                    Name = filterNamespace.Name
+                }).ToList()
             }).ToList()
         };
     }
@@ -141,10 +144,6 @@ public sealed class ConsumerPublicationWrapper
                 }
             }
 
-            if (filterExpression.Namespaces.Count > 0)
-            {
-                return "Filter namespaces are not supported by RapidRedPanda.ISBM.ClientAdapter 2.0.2.4 OpenSubscriptionSessionOptions.";
-            }
         }
 
         return null;

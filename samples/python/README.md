@@ -64,6 +64,18 @@ The Python samples automatically pass the filter options to the CLI. The generat
 --filter-expression "$.DataArea.Show.Measurement[?(@.value > 100)]" --filter-language JsonPath --filter-language-version 1.0 --filter-media-type application/json
 ```
 
+## Posting Content And Media Types
+
+The posting samples omit `--media-type` for their default JSON object payloads. With no media type, the wrapper lets the SDK post `--content` as native JSON object content.
+
+When `--media-type` is supplied, the wrapper forwards it to the SDK and treats `--content` as exact text. Use this for XML, plain text, or JSON text that must be preserved as a string payload:
+
+```powershell
+--media-type application/xml --content "<root><value>42</value></root>"
+--media-type text/plain --content "hello"
+--media-type application/json --content "{\"value\":42}"
+```
+
 ## CLI Discovery
 
 The Python samples automatically locate `RapidRedPanda.Wrapper.Cli` and do not need to be edited when moving between Windows, Linux, macOS, and source checkouts.
@@ -312,7 +324,7 @@ python samples/python/06_post_publication.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S30:V1.1/CCOM-JSON:SyncMeasurements:V1.0 --media-type application/json --content '{"messageType":"SyncMeasurements"}' --user your-username --password your-password
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-publication --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S30:V1.1/CCOM-JSON:SyncMeasurements:V1.0 --content '{"messageType":"SyncMeasurements"}' --user your-username --password your-password
 ```
 
 3. Expire publication:
@@ -382,7 +394,7 @@ python samples/python/10_post_request.py <session-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --media-type application/json --content '{"messageType":"GetMeasurements"}' --user your-username --password your-password
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-request --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --topic OIIE:S32:V1.1/CCOM-JSON:GetMeasurements:V1.0 --content '{"messageType":"GetMeasurements"}' --user your-username --password your-password
 ```
 
 3. Read response:
@@ -480,7 +492,7 @@ python samples/python/17_post_response.py <session-id> <request-message-id>
 Manual CLI test:
 
 ```powershell
-dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-response --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --media-type application/json --content '{"messageType":"Response","status":"Accepted"}' --user your-username --password your-password
+dotnet ./src/RapidRedPanda.Wrapper.Cli/bin/Debug/net8.0/RapidRedPanda.Wrapper.Cli.dll post-response --host http://your-server/isbm/2.0 --session-id c065133a-440f-4235-8fab-81bcc6355289 --request-message-id request-123 --content '{"messageType":"Response","status":"Accepted"}' --user your-username --password your-password
 ```
 
 4. Remove request:

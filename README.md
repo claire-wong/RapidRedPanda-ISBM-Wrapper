@@ -93,14 +93,14 @@ Consumer publication commands:
 Provider publication commands:
 
 - `open-publication-session --host <url> --channel <channel> --user <user> --password <password> [--topic <topic>] [--raw]`
-- `post-publication --host <url> --session-id <id> --topic <topic> --content <json> --user <user> --password <password> [--media-type application/json] [--expiry <value>] [--raw]`
+- `post-publication --host <url> --session-id <id> --topic <topic> --content <content> --user <user> --password <password> [--media-type <type>] [--expiry <value>] [--raw]`
 - `expire-publication --host <url> --session-id <id> --message-id <id> --user <user> --password <password> [--raw]`
 - `close-publication-session --host <url> --session-id <id> --user <user> --password <password> [--raw]`
 
 Consumer request commands:
 
 - `open-request-session --host <url> --channel <channel> --user <user> --password <password> [--topic <topic>] [--raw]`
-- `post-request --host <url> --session-id <id> --topic <topic> --content <json> --user <user> --password <password> [--media-type application/json] [--expiry <value>] [--raw]`
+- `post-request --host <url> --session-id <id> --topic <topic> --content <content> --user <user> --password <password> [--media-type <type>] [--expiry <value>] [--raw]`
 - `read-response --host <url> --session-id <id> --request-message-id <id> --user <user> --password <password> [--raw]`
 - `remove-response --host <url> --session-id <id> --request-message-id <id> --user <user> --password <password> [--raw]`
 - `expire-request --host <url> --session-id <id> --message-id <id> --user <user> --password <password> [--raw]`
@@ -110,11 +110,11 @@ Provider request commands:
 
 - `open-provider-request-session --host <url> --channel <channel> --topic <topic> --user <user> --password <password> [--raw]`
 - `read-request --host <url> --session-id <id> --user <user> --password <password> [--raw]`
-- `post-response --host <url> --session-id <id> --request-message-id <id> --content <json> --user <user> --password <password> [--media-type application/json] [--raw]`
+- `post-response --host <url> --session-id <id> --request-message-id <id> --content <content> --user <user> --password <password> [--media-type <type>] [--raw]`
 - `remove-request --host <url> --session-id <id> --user <user> --password <password> [--raw]`
 - `close-provider-request-session --host <url> --session-id <id> --user <user> --password <password> [--raw]`
 
-`--media-type` is accepted on post commands for compatibility with existing examples. The current wrapper passes message content through the installed SDK's JSON message-content behavior.
+For post commands, omit `--media-type` when `--content` contains a native JSON object. Supplying `--media-type` treats `--content` as an exact textual payload and forwards the media type to the SDK. For example, use `--media-type application/xml --content "<root/>"` for XML, `--media-type text/plain --content "hello"` for plain text, or `--media-type application/json --content "{\"value\":42}"` when the JSON text itself must be preserved as a string payload.
 
 ## JSON response format
 

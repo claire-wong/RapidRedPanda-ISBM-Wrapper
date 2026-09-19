@@ -76,7 +76,8 @@ try
             parseResult.Get("--user"),
             parseResult.Get("--password"),
             parseResult.Has("--raw"),
-            parseResult.GetOptional("--expiry")),
+            parseResult.GetOptional("--expiry"),
+            parseResult.GetOptional("--media-type")),
         "expire-publication" => providerPublicationWrapper.ExpirePublication(
             parseResult.Get("--host"),
             parseResult.Get("--session-id"),
@@ -106,7 +107,8 @@ try
             parseResult.Get("--user"),
             parseResult.Get("--password"),
             parseResult.Has("--raw"),
-            parseResult.GetOptional("--expiry")),
+            parseResult.GetOptional("--expiry"),
+            parseResult.GetOptional("--media-type")),
         "read-response" => consumerRequestWrapper.ReadResponse(
             parseResult.Get("--host"),
             parseResult.Get("--session-id"),
@@ -157,7 +159,8 @@ try
             parseResult.Get("--content"),
             parseResult.Get("--user"),
             parseResult.Get("--password"),
-            parseResult.Has("--raw")),
+            parseResult.Has("--raw"),
+            parseResult.GetOptional("--media-type")),
         "remove-request" => providerRequestWrapper.RemoveRequest(
             parseResult.Get("--host"),
             parseResult.Get("--session-id"),

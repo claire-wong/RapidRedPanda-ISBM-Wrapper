@@ -6,7 +6,7 @@ Post a request using an existing consumer request session.
 
 This sample demonstrates:
 - Executing the wrapper CLI from Python
-- Posting a GetMeasurements request
+- Posting a native JSON GetMeasurements request
 - Parsing wrapper JSON responses
 - Retrieving the request Message ID
 
@@ -39,8 +39,6 @@ def build_command(cli_command_prefix: list[str], config: dict[str, str], session
         session_id,
         "--topic",
         config["requestTopic"],
-        "--media-type",
-        "application/json",
         "--content",
         json.dumps(PAYLOAD, separators=(",", ":")),
         "--user",
